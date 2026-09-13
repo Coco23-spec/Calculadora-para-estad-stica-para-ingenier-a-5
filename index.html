@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analizador Estadístico para Excel — Versión Final</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{--navy:#0e2a43;--navy2:#123a5e;--teal:#1c7a8c;--teal2:#2fa3b8;--amber:#d99a44;--paper:#eef2f6;--card:#fff;--ink:#122435;--soft:#5a6b7a;--line:#d7e0e8;--good:#2f8f5b;--danger:#b63b3b}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Segoe UI",Arial,sans-serif}
+header{background:var(--navy);color:#fff;padding:26px 28px;border-bottom:4px solid var(--amber)}
+header h1{margin:0 0 5px;font-size:1.5rem}header p{margin:0;color:#c9d7e2}
+.wrap{max-width:1250px;margin:auto;padding:0 18px 60px}
+.tabs{display:flex;gap:3px;flex-wrap:wrap;margin:18px 0;background:#dce4eb;padding:4px;border-radius:10px;position:sticky;top:0;z-index:10}
+.tabs button{border:0;background:transparent;padding:10px 12px;border-radius:8px;color:var(--navy2);font-weight:700;cursor:pointer;flex:1 1 145px}.tabs button.active{background:var(--navy);color:#fff}
+.panel{display:none}.panel.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+h2{margin:0 0 4px;color:var(--navy);font-size:1.1rem}h3{color:var(--navy);font-size:.95rem}.sub,.note{color:var(--soft);font-size:.84rem}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(max-width:850px){.grid2,.grid3{grid-template-columns:1fr}}
+label{display:block;font-size:.8rem;color:var(--soft);font-weight:700;margin:9px 0 4px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font:inherit;background:#fff}textarea{min-height:100px}
+.btn{border:0;border-radius:8px;padding:10px 15px;background:var(--teal);color:#fff;font-weight:700;cursor:pointer}.btn:hover{background:var(--navy2)}.btn.secondary{background:transparent;color:var(--navy2);border:1px solid var(--navy2)}.btn.danger{background:var(--danger)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.drop{border:2px dashed var(--teal2);background:#f4fbfc;border-radius:10px;padding:16px;text-align:center}
+.status{padding:10px 12px;border-radius:8px;background:#f5f8fa;border:1px solid var(--line);margin-top:10px;font-size:.84rem}.status.ok{background:#eef8f1;border-color:#bfe0c8}.status.err{background:#fff2f2;border-color:#e4bcbc}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-top:12px}.stat{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px;text-align:center}.stat .v{font-weight:800;color:var(--navy);font-size:1.05rem}.stat .l{font-size:.68rem;color:var(--soft);text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:10px}th{background:var(--navy);color:#fff;padding:7px;text-align:left;position:sticky;top:0}td{padding:6px 7px;border-bottom:1px solid var(--line)}tr:nth-child(even) td{background:#f8fafc}
+.scroll{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:8px}.formula{background:#eaf5f7;border-left:4px solid var(--teal);padding:10px 13px;margin:9px 0;font-family:"Cambria Math",Cambria,serif}.formula code{font-family:inherit}
+.pill{display:inline-block;padding:3px 8px;border-radius:20px;background:#e8f0f5;color:var(--navy2);font-size:.72rem;font-weight:700;margin:2px}
+.chartbox{min-height:250px}.hidden{display:none!important}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:850px){.two{grid-template-columns:1fr}}
+details{border:1px solid var(--line);border-radius:8px;margin-top:10px}summary{padding:9px 12px;background:#f5f7f9;color:var(--navy2);font-weight:700;cursor:pointer}.inside{padding:10px}
+.small{font-size:.76rem}.math{font-family:"Cambria Math",Cambria,serif}.explain{background:#fff8e9;border:1px solid #edd39b;border-radius:8px;padding:10px;margin:10px 0}.formula strong{color:var(--navy)}.center{text-align:center}.warn{color:#8b5a00}.success{color:var(--good)}
+.historyItem{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:#fff;overflow:hidden}.historyItem summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;background:#f6f9fb}.historyItem summary::-webkit-details-marker{display:none}.historyItem summary:before{content:'＋';font-weight:900;color:var(--teal);margin-right:8px}.historyItem[open] summary:before{content:'−'}.historyTitle{font-weight:800;color:var(--navy2)}.historyDate{font-size:.72rem;color:var(--soft);white-space:nowrap}.historyBody{padding:14px 16px;border-top:1px solid var(--line);background:#fff}.excelCalc{border-left:4px solid var(--amber);background:#fffaf0}.calcGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:900px){.calcGrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.calcGrid{grid-template-columns:1fr}}.resultHero{background:linear-gradient(135deg,#edf8fa,#f8fbfc);border:1px solid #cfe7eb;border-radius:12px;padding:14px;margin:12px 0}.formulaStep{display:grid;grid-template-columns:160px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.formulaStep:last-child{border-bottom:0}.formulaStep b{color:var(--navy2)}
+</style>
+</head>
+<body>
+<header>
+<h1>Analizador Estadístico para Ingenieros — Versión Final</h1>
+<p>Excel/CSV → frecuencias → descriptivos → variantes → distribuciones muestrales → TLC → correlaciones demostradas → PDF + Excel. Versión final.</p>
+</header>
+<div class="wrap">
+<nav class="tabs">
+<button class="tab active" data-tab="datos">1 · Datos</button>
+<button class="tab" data-tab="descriptivos">2 · Frecuencia y descriptivos</button>
+<button class="tab" data-tab="media">3 · Distribución de x̄</button>
+<button class="tab" data-tab="prop">4 · Distribución de p̂</button>
+<button class="tab" data-tab="tlc">5 · TLC</button>
+<button class="tab" data-tab="corr">6 · Variantes y correlaciones</button>
+<button class="tab" data-tab="hist">7 · Historial / exportación</button>
+<button class="tab" data-tab="excelcalc">8 · Calculadora del Excel</button>
+<button class="tab" data-tab="anova">9 · ANOVA</button>
+</nav>
+
+<section class="panel active" id="p-datos">
+<div class="card">
+<h2>Cargar datos</h2>
+<div class="sub">El archivo Excel se mantiene como archivo: NO se copia al cuadro de texto. Se conserva la estructura de hojas, encabezados y columnas para detectar automáticamente variables numéricas y categóricas.</div>
+<div class="drop">
+<strong>Selecciona o arrastra tu Excel/CSV</strong><br>
+<input id="file" type="file" accept=".xlsx,.xls,.csv,.txt" style="margin-top:8px">
+</div>
+<div class="grid2">
+<div><label>O pega una tabla (opcional)</label><textarea id="paste" placeholder="UDI | Product ID | Type | Air temperature [K] ...&#10;1 | M14860 | M | 298.1 ..."></textarea></div>
+<div><label>Opciones</label>
+<div class="status">Si subes Excel, se usa el archivo directamente. Si pegas datos, se crea una tabla interna sin reemplazar el archivo seleccionado.</div>
+<div id="fileInfo" class="status">Ningún archivo procesado.</div>
+</div></div>
+<div class="actions">
+<button class="btn" id="start">▶ Iniciar proceso</button>
+<button class="btn" id="finish">✓ Finalizar análisis completo</button>
+<button class="btn secondary" id="clear">Limpiar datos pegados</button>
+<button class="btn secondary" id="reset">Restablecer análisis</button>
+</div>
+<div id="status" class="status">Listo para cargar un archivo.</div>
+</div>
+<div class="card"><h2>Guía rápida del análisis</h2><div class="grid3"><div><b>1. Carga</b><div class="note">Sube el Excel. Se conserva como archivo y se analiza la hoja con encabezados y datos sin convertir el libro completo a texto.</div></div><div><b>2. Calcula</b><div class="note">Pulsa Iniciar o Finalizar. Se generan fórmulas, sustituciones, tablas de frecuencia, gráficos, variantes y asociaciones.</div></div><div><b>3. Sustenta</b><div class="note">En cada cálculo verás fórmula → valores reales → sustitución → resultado → interpretación. Luego puedes exportar PDF + Excel.</div></div></div></div>
+<div class="card">
+<h2>Vista previa de la base</h2><div id="schema" class="note">Carga un archivo para detectar sus variantes.</div>
+<div class="scroll"><table id="preview"></table></div>
+</div>
+</section>
+
+<section class="panel" id="p-descriptivos">
+<div class="card"><h2>Frecuencia y estadística descriptiva</h2><div class="sub">Se analiza automáticamente CADA columna numérica y, cuando corresponde, se muestra su distribución por cada variante categórica.</div>
+<div id="numericSelector"></div><div id="descOutput"></div></div>
+</section>
+
+<section class="panel" id="p-media">
+<div class="card"><h2>Distribución muestral de x̄</h2><div class="sub">Simulación con reemplazo desde la población cargada. Se compara la media de las medias con μ y el error estándar observado con σ/√n.</div>
+<div class="grid3"><div><label>Variable numérica</label><select id="mediaVar"></select></div><div><label>n de cada muestra</label><input id="mediaN" type="number" value="30" min="2"></div><div><label>M muestras</label><input id="mediaM" type="number" value="500" min="50"></div></div>
+<div class="actions"><button class="btn" id="runMedia">Generar x̄</button></div></div>
+<div id="mediaOut"></div>
+</section>
+
+<section class="panel" id="p-prop">
+<div class="card"><h2>Distribución muestral de p̂</h2><div class="sub">Se selecciona una variable categórica/binaria y una categoría de éxito. También funciona con Target, Failure Type, Type, etc.</div>
+<div class="grid3"><div><label>Variable categórica</label><select id="propVar"></select></div><div><label>Categoría = éxito</label><select id="propLevel"></select></div><div><label>n / M</label><input id="propN" type="number" value="30" min="2"><input id="propM" type="number" value="500" min="50" style="margin-top:5px"></div></div>
+<div class="actions"><button class="btn" id="runProp">Generar p̂</button></div></div><div id="propOut"></div>
+</section>
+
+<section class="panel" id="p-tlc">
+<div class="card"><h2>Teorema del Límite Central</h2><div class="sub">Se ejecuta sobre una variable numérica y genera curvas normales para varios tamaños de muestra.</div>
+<div class="grid3"><div><label>Variable numérica</label><select id="tlcVar"></select></div><div><label>n a comparar</label><input id="tlcNs" value="5,10,20,30,50,100,370"></div><div><label>Mostrar tabla</label><select id="tlcMode"><option value="both">Curvas + tabla</option><option value="table">Solo tabla</option></select></div></div>
+<div class="actions"><button class="btn" id="runTlc">Ejecutar TLC</button></div>
+<div class="formula"><b>Teorema:</b> para muestras suficientemente grandes, la distribución de x̄ se aproxima a una normal con <b>E(x̄)=μ</b> y <b>σ<sub>x̄</sub>=σ/√n</b>, independientemente de la forma de la población bajo condiciones habituales.</div></div>
+<div id="tlcOut"></div>
+</section>
+
+<section class="panel" id="p-corr">
+<div class="card"><h2>Variantes, segmentación y correlaciones</h2><div class="sub">Detecta automáticamente las variantes de cada archivo. Ejemplo: Type=M/L, Product ID, Failure Type, Target, marca, modelo, turno, proveedor, etc. No se necesita conocer los nombres antes de subir el Excel.</div>
+<div class="grid2"><div><label>Variante / columna categórica</label><select id="groupVar"></select></div><div><label>Variable numérica a comparar</label><select id="groupNum"></select></div></div>
+<div class="actions"><button class="btn" id="runGroup">Analizar cada variante</button></div></div>
+<div id="groupOut"></div>
+<div class="card"><h2>Matriz de correlaciones</h2><div class="sub">Numérica–numérica: Pearson y Spearman. Categórica–numérica: η² (eta cuadrado) + medias por grupo. Categórica–categórica: V de Cramér.</div>
+<div class="actions"><button class="btn" id="runAllCorr">Calcular todas las asociaciones</button></div><div id="corrOut"></div></div>
+</section>
+
+
+<section class="panel" id="p-excelcalc">
+<div class="card">
+<h2>Calculadora del Excel — análisis automático por variable</h2>
+<div class="sub">Esta pestaña identifica cada columna del Excel como <b>cuantitativa</b> o <b>cualitativa</b> y aplica únicamente las fórmulas que corresponden. No modifica las otras 7 pestañas.</div>
+<div class="grid3">
+<div><label>Variable del Excel</label><select id="ecVariable"></select></div>
+<div><label>Tipo detectado</label><div id="ecTypeBadge" class="status">Seleccione una variable.</div></div>
+<div style="display:flex;align-items:end"><button class="btn" id="analyzeEcVariable">🔎 Analizar variable</button></div>
+</div>
+<div class="actions"><button class="btn secondary" id="saveEcImage">📷 Guardar análisis (1-4) como imagen</button></div>
+<div class="note">La detección usa los valores reales de cada columna: si predominan números se clasifica como <b>cuantitativa</b>; si predominan categorías o texto, como <b>cualitativa</b>. Las columnas identificadoras se muestran como cualitativas para evitar aplicar fórmulas numéricas que no corresponden.</div>
+<div id="ecClassificationTable" class="card" style="margin-top:12px;display:none;">
+<h3>Clasificación automática de las variables</h3>
+<div class="note">Aquí puedes comprobar qué tipo de variable detectó la calculadora <b>antes de ejecutar los cálculos</b>.</div>
+<table id="ecClassTable"></table>
+</div>
+</div>
+<div id="ecVariableOut"></div>
+
+<div class="card">
+<h2>Modelo del Excel de distribución muestral</h2>
+<div class="sub">Esta pestaña reproduce los cálculos que aparecen en tu Excel: proporción poblacional, q, tamaño de muestra con población finita, muestreo sistemático, distribución muestral de p̂, distribución normal e intervalo de confianza. Cada resultado muestra fórmula → valores → sustitución → resultado.</div>
+<div class="calcGrid">
+<div><label>N población (N)</label><input id="ecN" type="number" min="1" value="109"></div>
+<div><label>Éxitos / casos favorables (X)</label><input id="ecX" type="number" min="0" value="0"></div>
+<div><label>Nivel de confianza (%)</label><input id="ecConf" type="number" min="50" max="99.99" step="0.01" value="95"></div>
+<div><label>Error máximo permitido (e)</label><input id="ecE" type="number" min="0.000001" step="0.001" value="0.05"></div>
+<div><label>Tamaño de muestra n</label><input id="ecSampleN" type="number" min="2" value="30"></div>
+<div><label>M muestras simuladas</label><input id="ecM" type="number" min="50" value="1000"></div>
+<div><label>Intervalos de clase (k)</label><input id="ecK" type="number" min="2" value="10"></div>
+<div><label>Semilla (opcional)</label><input id="ecSeed" type="number" placeholder="Aleatoria"></div>
+</div>
+<div class="actions"><button class="btn" id="runExcelCalc">🧮 Calcular modelo del Excel</button><button class="btn secondary" id="useLoadedData">Usar datos cargados</button></div>
+<div class="note">Si hay un archivo cargado, “Usar datos cargados” intenta obtener N y X desde una variable categórica que elijas. Si trabajas manualmente, coloca los valores de tu Excel directamente.</div>
+</div>
+<div class="card">
+<h3>Variable para proporción</h3>
+<div class="grid2"><div><label>Variable categórica</label><select id="ecCatVar"></select></div><div><label>Categoría de éxito</label><select id="ecCatLevel"></select></div></div>
+</div>
+<div id="excelCalcOut"></div>
+</section>
+
+<section class="panel" id="p-anova">
+<div class="card">
+<h2>ANOVA de un factor (Análisis de Varianza)</h2>
+<div class="sub">Compara la media de una variable numérica entre tres o más grupos definidos por una variable categórica, para determinar si al menos un grupo difiere significativamente de los demás. Usa las mismas columnas detectadas automáticamente en la pestaña 1.</div>
+<div class="grid3">
+<div><label>Factor (variable categórica / grupos)</label><select id="anovaCat"></select></div>
+<div><label>Variable numérica (dependiente)</label><select id="anovaNum"></select></div>
+<div><label>Nivel de significancia (α)</label><input id="anovaAlpha" type="number" min="0.001" max="0.5" step="0.01" value="0.05"></div>
+</div>
+<div class="actions"><button class="btn" id="runAnova">📐 Ejecutar ANOVA</button></div>
+<div class="explain"><b>Idea central:</b> ANOVA descompone la variabilidad total de los datos en variabilidad <b>entre grupos</b> (SSB) y variabilidad <b>dentro de los grupos</b> (SSW). Si SSB es grande respecto a SSW, el estadístico F resulta alto y hay evidencia de diferencias reales entre las medias de los grupos.</div>
+<div class="formula"><b>Hipótesis:</b><br><b>H₀:</b> μ₁ = μ₂ = ... = μₖ (todas las medias de los grupos son iguales)<br><b>H₁:</b> al menos una media difiere de las demás<br><br><b>Supuestos:</b> normalidad de los residuos en cada grupo, homogeneidad de varianzas (homocedasticidad) e independencia de las observaciones. Con grupos muy pequeños o distribuciones muy asimétricas, considera Kruskal–Wallis como alternativa no paramétrica.</div>
+</div>
+<div id="anovaOut"></div>
+</section>
+
+<section class="panel" id="p-hist">
+<div class="card"><h2>Historial del proceso</h2><div class="sub">Guarda qué archivo se procesó, variables detectadas, fórmulas, tablas, simulaciones y resultados. El historial se mantiene en este navegador.</div>
+<div class="actions"><button class="btn" id="pdf">📄 Exportar PDF completo</button><button class="btn" id="xlsx">📊 Exportar Excel completo</button><button class="btn" id="both">📦 Exportar PDF + Excel</button><button class="btn secondary" id="openHist">Abrir resumen</button><button class="btn danger" id="clearHist">Borrar historial</button></div>
+<div id="history"></div></div>
+</section>
+</div>
+
+<script>
+let ROWS=[], HEADERS=[], NUM=[], CAT=[], FILE_NAME='', HISTORY=[], CHARTS={}, RESULTS={};
+const $=id=>document.getElementById(id);
+const fmt=(x,d=4)=>Number.isFinite(x)?Number(x).toLocaleString('es-PE',{maximumFractionDigits:d}):'—';
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function mean(a){return a.reduce((s,x)=>s+x,0)/a.length}
+function variance(a){let m=mean(a);return a.length>1?a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1):0}
+function sd(a){return Math.sqrt(variance(a))}
+function median(a){let s=[...a].sort((x,y)=>x-y),n=s.length;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2}
+function quantile(a,q){let s=[...a].sort((x,y)=>x-y);if(!s.length)return NaN;let p=(s.length-1)*q,b=Math.floor(p),r=p-b;return s[b]+(s[b+1]??s[b]-s[b])*r}
+function mode(a){let f=new Map();a.forEach(x=>f.set(x,(f.get(x)||0)+1));let mx=Math.max(...f.values());return mx<=1?'Sin moda clara':[...f.entries()].filter(x=>x[1]===mx).map(x=>x[0]).join(', ')}
+function pearson(x,y){let mx=mean(x),my=mean(y),a=0,b=0,c=0;for(let i=0;i<x.length;i++){let dx=x[i]-mx,dy=y[i]-my;a+=dx*dy;b+=dx*dx;c+=dy*dy}return a/Math.sqrt(b*c)}
+function ranks(a){let s=a.map((v,i)=>({v,i})).sort((x,y)=>x.v-y.v),r=Array(a.length);for(let i=0;i<s.length;){let j=i;while(j+1<s.length&&s[j+1].v===s[i].v)j++;let z=(i+j)/2+1;for(let k=i;k<=j;k++)r[s[k].i]=z;i=j+1}return r}
+function spearman(x,y){return pearson(ranks(x),ranks(y))}
+function normalPDF(x,m,s){return s>0?Math.exp(-.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI)):0}
+function sturges(n){return Math.max(5,Math.ceil(1+3.322*Math.log10(n)))}
+function freq(a){let min=Math.min(...a),max=Math.max(...a),k=sturges(a.length),w=(max-min)/k||1,rows=[];for(let i=0;i<k;i++){let lo=min+i*w,hi=i===k-1?max:min+(i+1)*w,c=a.filter(v=>i===k-1?v>=lo&&v<=hi:v>=lo&&v<hi).length;rows.push({lo,hi,mid:(lo+hi)/2,fi:c,hiRel:c/a.length,Fi:0,Hi:0})}let F=0,H=0;rows.forEach(r=>{F+=r.fi;H+=r.hiRel;r.Fi=F;r.Hi=H});return {rows,k,w,min,max}}
+function sample(a,n){let o=[];for(let i=0;i<n;i++)o.push(a[Math.floor(Math.random()*a.length)]);return o}
+function normalSeries(mu,sigma){let span=Math.max(4*sigma,1e-9),xs=[];for(let i=0;i<=120;i++)xs.push(mu-span+2*span*i/120);return {xs,ys:xs.map(x=>normalPDF(x,mu,sigma))}}
+function valuesFor(h){return ROWS.map(r=>r[h]).filter(v=>v!==''&&v!==null&&v!==undefined)}
+function numericValues(h){return valuesFor(h).map(v=>typeof v==='number'?v:Number(String(v).replace(',','.'))).filter(Number.isFinite)}
+function categories(h){return [...new Set(valuesFor(h).map(String))]}
+function isNumericCol(h){let vals=valuesFor(h),good=vals.map(v=>typeof v==='number'?v:Number(String(v).replace(',','.'))).filter(Number.isFinite);return vals.length>0&&good.length/vals.length>=.8}
+function isCatCol(h){return !isNumericCol(h)}
+function renderTable(el,headers,rows,max=1000){$(el).innerHTML='<tr>'+headers.map(esc).map(x=>`<th>${x}</th>`).join('')+'</tr>'+rows.slice(0,max).map(r=>'<tr>'+r.map(x=>`<td>${esc(fmtCell(x))}</td>`).join('')+'</tr>').join('')}
+function fmtCell(v){if(typeof v==='number')return fmt(v,6);return String(v??'')}
+function setStatus(msg,ok=true){$('status').className='status '+(ok?'ok':'err');$('status').textContent=msg}
+function addHistory(title,detail){HISTORY.push({date:new Date().toLocaleString('es-PE'),title,detail});localStorage.setItem('estat_hist_final',JSON.stringify(HISTORY));renderHistory()}
+function renderHistory(){$('history').innerHTML=HISTORY.length?HISTORY.map((h,i)=>`<details class="historyItem"><summary><span><span class="historyTitle">${i+1}. ${esc(h.title)}</span></span><span class="historyDate">${esc(h.date)}</span></summary><div class="historyBody"><pre style="white-space:pre-wrap;font-size:.8rem;margin:0">${esc(h.detail)}</pre></div></details>`).join(''):'<div class="status">Sin registros.</div>'}
+function fillSelectors(){
+  const fill=(id,list,empty='Seleccione')=>$(id).innerHTML=`<option value="">${empty}</option>`+list.map(h=>`<option>${esc(h)}</option>`).join('');
+  fill('mediaVar',NUM);fill('tlcVar',NUM);fill('groupNum',NUM);fill('groupVar',CAT);fill('propVar',CAT);
+  if($('anovaNum'))fill('anovaNum',NUM);
+  if($('anovaCat'))fill('anovaCat',CAT);
+  if(NUM.length){ ['mediaVar','tlcVar','groupNum'].forEach(id=>$(id).value=NUM[0]); if($('anovaNum'))$('anovaNum').value=NUM[0]; }
+  if(CAT.length){$('groupVar').value=CAT[0];$('propVar').value=CAT.find(h=>categories(h).length<=10)||CAT[0];updatePropLevels();
+    if($('anovaCat'))$('anovaCat').value=CAT.find(h=>categories(h).length>=3&&categories(h).length<=15)||CAT[0];
+  }
+}
+function updatePropLevels(){let h=$('propVar').value;if(!h)return;$('propLevel').innerHTML=categories(h).slice(0,100).map(x=>`<option>${esc(x)}</option>`).join('')}
+function fillExcelCalcSelectors(){const fill=(id,list)=>$(id).innerHTML=list.map(h=>`<option>${esc(h)}</option>`).join('');fill('ecCatVar',CAT);if(CAT.length){$('ecCatVar').value=CAT.find(h=>categories(h).length<=10)||CAT[0];updateExcelCalcLevels()}}
+function updateExcelCalcLevels(){const h=$('ecCatVar').value;if(!h){$('ecCatLevel').innerHTML='';return}$('ecCatLevel').innerHTML=categories(h).slice(0,100).map(x=>`<option>${esc(x)}</option>`).join('')}
+function renderEcClassificationTable(){
+  const box=$('ecClassificationTable'),tbl=$('ecClassTable');
+  if(!box||!tbl)return;
+  if(!HEADERS.length){box.style.display='none';tbl.innerHTML='';return}
+  box.style.display='block';
+  let html='<tr><th>Variable</th><th>Tipo detectado</th><th>n válidos</th><th>Categorías</th><th>Por qué</th></tr>';
+  HEADERS.forEach(h=>{
+    const vals=valuesFor(h), numeric=isNumericCol(h), nums=vals.map(v=>Number(String(v).replace(',','.'))).filter(Number.isFinite);
+    const cats=categories(h).length;
+    const reason=numeric?`La columna contiene ${nums.length} valores numéricos de ${vals.length}. Se aplican fórmulas de media, mediana, varianza, desviación, etc.`:`La columna contiene categorías/texto o no alcanza el 80% de valores numéricos. Se aplican frecuencias, porcentajes, moda y proporciones.`;
+    html+=`<tr><td><b>${esc(h)}</b></td><td>${numeric?'<span class="status ok">📈 CUANTITATIVA</span>':'<span class="status">🏷️ CUALITATIVA</span>'}</td><td>${vals.length}</td><td>${cats}</td><td style="text-align:left">${reason}</td></tr>`;
+  });
+  tbl.innerHTML=html;
+}
+
+function fillEcVariableSelector(){
+  const sel=$('ecVariable');
+  if(!sel)return;
+  const list=[...HEADERS];
+  sel.innerHTML=list.length?list.map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join(''):'<option value="">No hay variables cargadas</option>';
+  renderEcClassificationTable();
+  if(list.length){
+    const preferred=list.find(h=>NUM.includes(h))||list[0];
+    sel.value=preferred;
+    updateEcVariableType();
+  }
+}
+function updateEcVariableType(){
+  const h=$('ecVariable').value;
+  if(!h){$('ecTypeBadge').textContent='Seleccione una variable.';return}
+  const numeric=isNumericCol(h);
+  $('ecTypeBadge').className='status '+(numeric?'ok':'');
+  $('ecTypeBadge').innerHTML=numeric?'📈 <b>Cuantitativa</b> — se aplican medidas numéricas y distribución de frecuencias.':'🏷️ <b>Cualitativa</b> — se aplican frecuencias, porcentajes, moda y proporciones.';
+}
+$('ecVariable').addEventListener('change',updateEcVariableType);
+
+function ecFrequencyNumeric(a){
+  const f=freq(a);
+  return `<table><tr><th>Intervalo</th><th>Marca de clase</th><th>fᵢ</th><th>Fᵢ</th><th>hᵢ</th><th>Hᵢ</th><th>%</th></tr>${f.rows.map(r=>`<tr><td>[${fmt(r.lo,4)}, ${fmt(r.hi,4)}]</td><td>${fmt(r.mid,4)}</td><td>${r.fi}</td><td>${r.Fi}</td><td>${fmt(r.hiRel,6)}</td><td>${fmt(r.Hi,6)}</td><td>${fmt(r.hiRel*100,2)}%</td></tr>`).join('')}</table>`;
+}
+function ecFrequencyCategorical(vals){
+  const map=new Map();vals.forEach(v=>{const k=String(v);map.set(k,(map.get(k)||0)+1)});
+  let F=0;const n=vals.length;
+  return [...map.entries()].sort((a,b)=>b[1]-a[1]).map(([cat,fi])=>{F+=fi;return {cat,fi,Fi:F,hi:fi/n,Hi:F/n}});
+}
+function analyzeEcVariable(){
+  if(!ROWS.length){alert('Primero carga y procesa un Excel o pega una tabla en la pestaña 1.');return}
+  const h=$('ecVariable').value;if(!h)return;
+  const vals=valuesFor(h), numeric=isNumericCol(h);
+  let out=`<div class="card resultHero"><h2>${esc(h)}</h2><div class="stats"><div class="stat"><div class="v">${vals.length}</div><div class="l">N observaciones</div></div><div class="stat"><div class="v">${numeric?'Cuantitativa':'Cualitativa'}</div><div class="l">Tipo detectado</div></div><div class="stat"><div class="v">${categories(h).length}</div><div class="l">Valores/categorías</div></div></div>`;
+
+  if(numeric){
+    const a=numericValues(h),n=a.length,m=mean(a),med=median(a),mo=mode(a),v=variance(a),s=sd(a),mn=Math.min(...a),mx=Math.max(...a),q1=quantile(a,.25),q3=quantile(a,.75),iqr=q3-q1,cv=m!==0?s/Math.abs(m):NaN;
+    out+=`<div class="card"><h2>1. Estadísticos descriptivos de la variable cuantitativa</h2><table><tr><th>Estadístico</th><th>Fórmula</th><th>Sustitución</th><th>Resultado</th></tr>
+    <tr><td>Media</td><td>x̄ = Σxᵢ/n</td><td>Σxᵢ = ${fmt(a.reduce((u,z)=>u+z,0),6)}; n = ${n}</td><td><b>${fmt(m,6)}</b></td></tr>
+    <tr><td>Mediana</td><td>Valor central de los datos ordenados</td><td>Ordenar ${n} observaciones</td><td><b>${fmt(med,6)}</b></td></tr>
+    <tr><td>Moda</td><td>máxima frecuencia</td><td>${esc(String(mo))}</td><td><b>${esc(String(mo))}</b></td></tr>
+    <tr><td>Varianza muestral</td><td>s² = Σ(xᵢ−x̄)²/(n−1)</td><td>n = ${n}; x̄ = ${fmt(m,6)}</td><td><b>${fmt(v,6)}</b></td></tr>
+    <tr><td>Desviación estándar</td><td>s = √s²</td><td>√${fmt(v,6)}</td><td><b>${fmt(s,6)}</b></td></tr>
+    <tr><td>Rango</td><td>R = xₘáx−xₘᵢₙ</td><td>${fmt(mx,6)} − ${fmt(mn,6)}</td><td><b>${fmt(mx-mn,6)}</b></td></tr>
+    <tr><td>Q1</td><td>Percentil 25</td><td>q = 0.25</td><td><b>${fmt(q1,6)}</b></td></tr>
+    <tr><td>Q3</td><td>Percentil 75</td><td>q = 0.75</td><td><b>${fmt(q3,6)}</b></td></tr>
+    <tr><td>IQR</td><td>Q3−Q1</td><td>${fmt(q3,6)} − ${fmt(q1,6)}</td><td><b>${fmt(iqr,6)}</b></td></tr>
+    <tr><td>Coef. variación</td><td>CV = s/|x̄| × 100</td><td>${fmt(s,6)}/|${fmt(m,6)}| × 100</td><td><b>${fmt(cv*100,4)}%</b></td></tr></table></div>
+    <div class="card"><h2>2. Tabla de frecuencias</h2><div class="formula"><b>Frecuencia absoluta:</b> fᵢ = número de observaciones del intervalo.<br><b>Frecuencia relativa:</b> hᵢ = fᵢ/n.<br><b>Frecuencia acumulada:</b> Fᵢ = Σfᵢ.<br><b>Frecuencia relativa acumulada:</b> Hᵢ = Σhᵢ.</div>${ecFrequencyNumeric(a)}</div>
+    <div class="card"><h2>3. Gráfica de la variable</h2><div class="chartbox"><canvas id="ecVarChart"></canvas></div></div>
+    <div class="card"><h2>4. Fórmulas para distribución muestral</h2><div class="formula"><b>E(x̄) = μ</b> → la media de la variable es ${fmt(m,6)}.<br><b>σx̄ = σ/√n</b>. Al seleccionar un tamaño muestral n, el error estándar se obtiene dividiendo la desviación de la población entre √n.<br><br>Si se selecciona un tamaño de muestra en el modelo de abajo, estos valores alimentan directamente el cálculo de la distribución muestral de x̄.</div></div>`;
+    RESULTS.excelCalcVariable={variable:h,type:'cuantitativa',n,mean:m,median:med,mode:mo,variance:v,sd:s,min:mn,max:mx,q1,q3,iqr,cv,frequency:freq(a).rows};
+    addHistory('Calculadora del Excel — variable cuantitativa',`Variable=${h}\nTipo=Cuantitativa\nn=${n}\nMedia=${fmt(m)}; Mediana=${fmt(med)}; Moda=${mo}\nVarianza=${fmt(v)}; Desviación=${fmt(s)}\nQ1=${fmt(q1)}; Q3=${fmt(q3)}; IQR=${fmt(iqr)}; CV=${fmt(cv*100,4)}%\nSe generó tabla de frecuencias y gráfica.`);
+    $('ecVariableOut').innerHTML=out;
+    if(CHARTS.ecVarChart)CHARTS.ecVarChart.destroy();
+    const ft=freq(a);chart('ecVarChart','bar',ft.rows.map(r=>`[${fmt(r.lo,2)}, ${fmt(r.hi,2)}]`),[{label:'Frecuencia absoluta fᵢ',data:ft.rows.map(r=>r.fi)}],`Frecuencia de ${h}`);
+    return;
+  }else{
+    const rows=ecFrequencyCategorical(vals),n=vals.length,maxf=Math.max(...rows.map(r=>r.fi)),modes=rows.filter(r=>r.fi===maxf).map(r=>r.cat),p=maxf/n,q=1-p;
+    const TABLE_LIMIT=20,CHART_LIMIT=15;
+    const isIdLike = rows.length>0 && (rows.length/n)>=0.9; // casi todos los valores distintos → probable identificador
+    const visibleRows=rows.slice(0,TABLE_LIMIT), extraRows=rows.slice(TABLE_LIMIT);
+    const tableHtml=`<table><tr><th>Categoría</th><th>fᵢ</th><th>Fᵢ</th><th>hᵢ</th><th>Hᵢ</th><th>%</th></tr>${visibleRows.map(r=>`<tr><td>${esc(r.cat)}</td><td>${r.fi}</td><td>${r.Fi}</td><td>${fmt(r.hi,6)}</td><td>${fmt(r.Hi,6)}</td><td>${fmt(r.hi*100,2)}%</td></tr>`).join('')}</table>`
+      + (extraRows.length?`<details style="margin-top:8px"><summary>Ver las ${extraRows.length} categorías restantes (${rows.length} en total)</summary><div class="inside"><table><tr><th>Categoría</th><th>fᵢ</th><th>Fᵢ</th><th>hᵢ</th><th>Hᵢ</th><th>%</th></tr>${extraRows.map(r=>`<tr><td>${esc(r.cat)}</td><td>${r.fi}</td><td>${r.Fi}</td><td>${fmt(r.hi,6)}</td><td>${fmt(r.Hi,6)}</td><td>${fmt(r.hi*100,2)}%</td></tr>`).join('')}</table></div></details>`:'');
+    out+=`<div class="card"><h2>1. Estadísticos para la variable cualitativa</h2>${isIdLike?`<div class="note warn">⚠️ Esta variable tiene ${rows.length} categorías para ${n} observaciones (casi todos los valores son distintos), por lo que se comporta como un <b>identificador</b> más que como una variable categórica típica. Los estadísticos de moda/proporción tienen poco significado práctico aquí.</div>`:''}<table><tr><th>Medida</th><th>Fórmula</th><th>Sustitución</th><th>Resultado</th></tr>
+    <tr><td>N</td><td>N = número de observaciones</td><td>conteo de la columna</td><td><b>${n}</b></td></tr>
+    <tr><td>Número de categorías</td><td>cardinalidad</td><td>${rows.length} valores distintos</td><td><b>${rows.length}</b></td></tr>
+    <tr><td>Moda</td><td>categoría con max(fᵢ)</td><td>max(fᵢ) = ${maxf}</td><td><b>${esc(modes.slice(0,5).join(', '))}${modes.length>5?` … (+${modes.length-5})`:''}</b></td></tr>
+    <tr><td>Proporción de la categoría modal</td><td>p = X/N</td><td>${maxf}/${n}</td><td><b>${fmt(p,6)}</b></td></tr>
+    <tr><td>Complemento</td><td>q = 1−p</td><td>1−${fmt(p,6)}</td><td><b>${fmt(q,6)}</b></td></tr></table></div>
+    <div class="card"><h2>2. Tabla de frecuencias cualitativa</h2><div class="formula"><b>fᵢ:</b> frecuencia absoluta. <b>hᵢ=fᵢ/N:</b> frecuencia relativa. <b>%=hᵢ×100:</b> porcentaje. <b>Fᵢ:</b> frecuencia acumulada.</div>${rows.length>TABLE_LIMIT?`<div class="note">Se muestran las ${TABLE_LIMIT} categorías más frecuentes de ${rows.length}. Despliega la lista para ver el resto.</div>`:''}${tableHtml}</div>
+    <div class="card"><h2>3. Gráfica de frecuencias</h2><div class="chartbox"><canvas id="ecVarChart"></canvas></div>${rows.length>CHART_LIMIT?`<div class="note">El gráfico agrupa las ${CHART_LIMIT-1} categorías más frecuentes; el resto (${rows.length-(CHART_LIMIT-1)} categorías) se resume en la barra "Otras" para que las barras sigan siendo legibles.</div>`:''}</div>
+    <div class="card"><h2>4. Aplicación al modelo de proporción del Excel</h2><div class="formula"><b>p = X/N</b>. Si eliges una categoría de éxito en el modelo de abajo, X será el número de veces que aparece esa categoría y N el total de observaciones.<br><b>q = 1−p</b>.<br><b>E(p̂)=p</b>.<br><b>σp̂ = √[p(1−p)/n]</b> para población infinita o corrección finita cuando corresponda.</div></div>`;
+    RESULTS.excelCalcVariable={variable:h,type:'cualitativa',n,categories:rows.length,mode:modes,p,q,frequency:rows};
+    addHistory('Calculadora del Excel — variable cualitativa',`Variable=${h}\nTipo=Cualitativa\nN=${n}; categorías=${rows.length}\nModa=${modes.slice(0,5).join(', ')}; p modal=${fmt(p)}; q=${fmt(q)}\nSe generó tabla de frecuencias y gráfica.`);
+    $('ecVariableOut').innerHTML=out;
+    if(CHARTS.ecVarChart)CHARTS.ecVarChart.destroy();
+    let chartLabels,chartData;
+    if(rows.length>CHART_LIMIT){
+      const top=rows.slice(0,CHART_LIMIT-1);
+      const restSum=rows.slice(CHART_LIMIT-1).reduce((s,r)=>s+r.fi,0);
+      chartLabels=[...top.map(r=>r.cat),`Otras (${rows.length-(CHART_LIMIT-1)})`];
+      chartData=[...top.map(r=>r.fi),restSum];
+    }else{
+      chartLabels=rows.map(r=>r.cat);chartData=rows.map(r=>r.fi);
+    }
+    chart('ecVarChart','bar',chartLabels,[{label:'Frecuencia absoluta fᵢ',data:chartData}],`Frecuencia de ${h}`);
+  }
+}
+async function saveEcVariableImage(){
+  const el=$('ecVariableOut');
+  if(!el||!el.innerHTML.trim()){alert('Primero analiza una variable con el botón "🔎 Analizar variable".');return}
+  if(typeof html2canvas==='undefined'){alert('No se pudo cargar la librería de exportación de imagen (revisa tu conexión a internet e intenta de nuevo).');return}
+  try{
+    const canvas=await html2canvas(el,{backgroundColor:'#eef2f6',scale:2,useCORS:true});
+    const varName=($('ecVariable').value||'variable').replace(/[^a-zA-Z0-9]+/g,'_');
+    const link=document.createElement('a');
+    link.download=`analisis_${varName}.png`;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+    addHistory('Exportación de imagen',`Se guardó como imagen el análisis (secciones 1 a 4) de la variable "${$('ecVariable').value}".`);
+  }catch(err){alert('No se pudo generar la imagen. Error: '+(err?.message||err));}
+}
+$('saveEcImage').addEventListener('click',saveEcVariableImage);
+$('analyzeEcVariable').addEventListener('click',analyzeEcVariable);
+
+$('ecCatVar').addEventListener('change',updateExcelCalcLevels);
+$('propVar').addEventListener('change',updatePropLevels);
+
+function processMatrix(matrix,name,source){
+  if(!matrix.length){setStatus('No se encontraron filas.',false);return}
+  HEADERS=matrix[0].map((x,i)=>String(x??`Variable ${i+1}`).trim()||`Variable ${i+1}`);
+  ROWS=matrix.slice(1).filter(r=>r.some(v=>v!==''&&v!==null&&v!==undefined)).map(r=>Object.fromEntries(HEADERS.map((h,i)=>[h,r[i]??''])));
+  NUM=HEADERS.filter(isNumericCol);CAT=HEADERS.filter(isCatCol);FILE_NAME=name||'Datos pegados';
+  $('fileInfo').textContent=`Fuente: ${FILE_NAME} · ${ROWS.length} filas · ${HEADERS.length} columnas`;
+  $('schema').innerHTML=`<b>Detectadas:</b> ${NUM.length} numéricas · ${CAT.length} categóricas. <span class="pill">${NUM.join('</span> <span class="pill">')||'ninguna'}</span><br><b>Variantes:</b> ${CAT.map(h=>`${esc(h)} (${categories(h).length})`).join(' · ')||'ninguna'}`;
+  renderEcClassificationTable();
+  renderTable('preview',HEADERS,ROWS.slice(0,40).map(r=>HEADERS.map(h=>r[h])),40);
+  fillSelectors();fillExcelCalcSelectors();fillEcVariableSelector();setStatus(`✓ ${ROWS.length} filas procesadas. El Excel original no se convirtió en texto.`,true);
+  addHistory('Carga y detección de variables',`Archivo/fuente: ${FILE_NAME}\nFilas: ${ROWS.length}\nColumnas: ${HEADERS.length}\nNuméricas: ${NUM.join(', ')||'ninguna'}\nCategóricas/variantes: ${CAT.join(', ')||'ninguna'}`);
+  buildDescriptives();
+}
+
+$('file').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    if(f.name.toLowerCase().endsWith('.csv')||f.name.toLowerCase().endsWith('.txt')){
+      const text=await f.text();const wb=XLSX.read(text,{type:'string'});processMatrix(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}),f.name,'archivo');
+    }else{
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true});
+      const firstSheet=wb.SheetNames.find(sn=>{const m=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});return m.length>1;});
+      if(!firstSheet) throw new Error('El libro no contiene una hoja con encabezados y datos.');
+      const m=XLSX.utils.sheet_to_json(wb.Sheets[firstSheet],{header:1,defval:''});
+      processMatrix(m,f.name,'excel');
+      addHistory('Estructura del libro',`Hojas detectadas: ${wb.SheetNames.length}\nHoja analizada: ${firstSheet}\nLas demás hojas no se mezclan para evitar combinar columnas incompatibles.`);
+    }
+  }catch(err){setStatus('Error leyendo archivo: '+err.message,false)}
+});
+$('start').addEventListener('click',()=>{
+  if($('file').files[0]){$('file').dispatchEvent(new Event('change'));return}
+  const text=$('paste').value.trim();if(!text){setStatus('Sube un Excel/CSV o pega una tabla.',false);return}
+  const rows=text.split(/\r?\n/).filter(Boolean).map(line=>line.split(/\t|\s*\|\s*|;(?=\s*\w)/).map(x=>{let y=x.trim();let n=Number(y.replace(',','.'));return y!==''&&Number.isFinite(n)?n:y}));
+  processMatrix(rows,'Datos pegados','pegado');
+});
+$('clear').addEventListener('click',()=>{$('paste').value='';setStatus('Datos pegados limpiados. El archivo seleccionado permanece intacto.',true)});
+$('reset').addEventListener('click',()=>{ROWS=[];HEADERS=[];NUM=[];CAT=[];RESULTS={};Object.values(CHARTS).forEach(c=>c?.destroy());CHARTS={};['preview','schema','descOutput','mediaOut','propOut','tlcOut','groupOut','corrOut','excelCalcOut','ecVariableOut'].forEach(id=>$(id).innerHTML='');fillEcVariableSelector();$('fileInfo').textContent='Ningún archivo procesado.';$('paste').value='';setStatus('Análisis restablecido. Puedes cargar un nuevo archivo.',true);fillSelectors()});
+
+function buildDescriptives(){
+  if(!NUM.length){$('descOutput').innerHTML='<div class="status">No hay variables numéricas.</div>';return}
+  $('numericSelector').innerHTML=`<label>Variable para detalle</label><select id="descVar">${NUM.map(h=>`<option>${esc(h)}</option>`).join('')}</select>`;
+  $('descVar').addEventListener('change',()=>renderDesc($('descVar').value));renderDesc(NUM[0]);
+}
+function sumText(a){return a.slice(0,18).map(x=>fmt(x,4)).join(' + ')+(a.length>18?' + …':'')}
+function varianceDetail(a,m){return a.slice(0,12).map(x=>`(${fmt(x,4)}−${fmt(m,4)})²`).join(' + ')+(a.length>12?' + …':'')}
+function formulaRow(nombre,formula,sustitucion,resultado,explicacion=''){return `<tr><td><b>${esc(nombre)}</b></td><td class="math">${formula}</td><td class="math">${sustitucion}</td><td><b>${esc(String(resultado))}</b></td><td>${esc(explicacion)}</td></tr>`}
+function renderDesc(h){
+  const a=numericValues(h),m=mean(a),med=median(a),mo=mode(a),s=sd(a),v=variance(a),mn=Math.min(...a),mx=Math.max(...a),range=mx-mn,q1=quantile(a,.25),q3=quantile(a,.75),iqr=q3-q1,cv=m?100*s/Math.abs(m):NaN,ft=freq(a);
+  const sorted=[...a].sort((x,y)=>x-y);
+  const medSub=a.length%2?`posición ${(a.length+1)/2}: ${fmt(sorted[(a.length-1)/2],4)}`:`promedio de posiciones ${a.length/2} y ${a.length/2+1}: (${fmt(sorted[a.length/2-1],4)} + ${fmt(sorted[a.length/2],4)}) / 2`;
+  const modeSub=(()=>{let mp=new Map();a.forEach(x=>mp.set(x,(mp.get(x)||0)+1));let top=[...mp.entries()].sort((x,y)=>y[1]-x[1]).slice(0,5);return top.map(([x,c])=>`${fmt(x,4)} aparece ${c} vez${c===1?'':'ces'}`).join('; ')})();
+  const stats=[['n',a.length],['Media',m],['Mediana',med],['Moda',mo],['Desv. estándar',s],['Varianza',v],['Mínimo',mn],['Máximo',mx],['Rango',range],['Q1',q1],['Q3',q3],['IQR',iqr],['CV %',cv]];
+  let html=`<div class="stats">${stats.map(x=>`<div class="stat"><div class="v">${typeof x[1]==='string'?esc(x[1]):fmt(x[1])}</div><div class="l">${x[0]}</div></div>`).join('')}</div>`;
+  html+=`<div class="formula"><b>Cómo se obtuvieron los resultados</b><br>La fórmula no se queda solo escrita: debajo se muestra la <b>sustitución con los valores reales de ${esc(h)}</b> y el resultado. Las sumas largas se resumen con una muestra de los primeros valores, pero el programa calcula con TODOS los datos. También se muestran las sumas exactas Σx, Σx² y los conteos que realmente sustituyen a cada símbolo.</div>`;
+  html+=`<details open><summary>Fórmulas + sustitución paso a paso</summary><div class="inside"><table><tr><th>Estadístico</th><th>Fórmula</th><th>Reemplazo con tus datos</th><th>Resultado</th><th>Qué significa</th></tr>`;
+  html+=formulaRow('Media','x̄ = Σxᵢ / n',`(${sumText(a)}) / ${a.length}`,fmt(m,6),'Promedio de todos los valores');
+  html+=formulaRow('Mediana','Ordenar datos y tomar el centro',medSub,fmt(med,6),'Valor central; si n es par se promedian los dos centrales');
+  html+=formulaRow('Moda','valor con mayor frecuencia',modeSub,mo,'Valor o valores que más se repiten');
+  html+=formulaRow('Varianza muestral','s² = Σ(xᵢ−x̄)² / (n−1)',`[${varianceDetail(a,m)}] / (${a.length}−1)`,fmt(v,6),'Mide la dispersión cuadrática respecto de la media');
+  html+=formulaRow('Desviación estándar','s = √s²',`√(${fmt(v,6)})`,fmt(s,6),'Está en las mismas unidades de la variable');
+  html+=formulaRow('Rango','R = xₘáₓ − xₘᵢₙ',`${fmt(mx,6)} − ${fmt(mn,6)}`,fmt(range,6),'Distancia entre el mayor y el menor valor');
+  html+=formulaRow('Q1','Percentil 25','posición interpolada al 25% de los datos ordenados',fmt(q1,6),'Deja aproximadamente 25% de observaciones por debajo');
+  html+=formulaRow('Q3','Percentil 75','posición interpolada al 75% de los datos ordenados',fmt(q3,6),'Deja aproximadamente 75% de observaciones por debajo');
+  html+=formulaRow('IQR','IQR = Q3 − Q1',`${fmt(q3,6)} − ${fmt(q1,6)}`,fmt(iqr,6),'Dispersión del 50% central de los datos');
+  html+=formulaRow('Coeficiente de variación','CV = 100·s / |x̄|',`100 × ${fmt(s,6)} / |${fmt(m,6)}|`,fmt(cv,4)+' %','Compara dispersión relativa');
+  html+=`</table></div></details>`;
+  const kSub=`⌈1 + 3.322 × log₁₀(${a.length})⌉ = ${ft.k}`;
+  const wSub=`(${fmt(mx,6)} − ${fmt(mn,6)}) / ${ft.k} = ${fmt(ft.w,6)}`;
+  html+=`<details open><summary>Tabla de frecuencias explicada — ${esc(h)}</summary><div class="inside"><div class="formula"><b>Paso 1 — Número de clases:</b> k = ⌈1 + 3.322 log₁₀(n)⌉ → ${kSub}.<br><b>Paso 2 — Rango:</b> R = máximo − mínimo → ${fmt(mx,6)} − ${fmt(mn,6)} = ${fmt(range,6)}.<br><b>Paso 3 — Amplitud:</b> A = R/k → ${wSub}.<br><b>Paso 4 — Frecuencia absoluta:</b> fᵢ = cantidad de observaciones que caen en el intervalo.<br><b>Paso 5 — Frecuencia relativa:</b> hᵢ = fᵢ/n.<br><b>Paso 6 — Acumuladas:</b> Fᵢ = suma acumulada de fᵢ y Hᵢ = suma acumulada de hᵢ.</div><table><tr><th>Intervalo</th><th>Marca de clase xᵢ*</th><th>fᵢ</th><th>Fᵢ</th><th>hᵢ</th><th>Hᵢ</th><th>Lectura</th></tr>${ft.rows.map((r,i)=>`<tr><td>[${fmt(r.lo,3)}, ${fmt(r.hi,3)}]</td><td>${fmt(r.mid,3)}</td><td>${r.fi}</td><td>${r.Fi}</td><td>${fmt(r.hiRel,4)}</td><td>${fmt(r.Hi,4)}</td><td>${r.fi} datos; ${fmt(100*r.hiRel,2)}% del total</td></tr>`).join('')}</table><div class="explain"><b>Demostración de una fila:</b> el programa toma el intervalo, revisa cada observación y cuenta las que cumplen sus límites. Por ejemplo, si una clase tiene fᵢ=24 y n=${a.length}, entonces hᵢ=fᵢ/n=24/${a.length}=${fmt(24/a.length,6)}=${fmt(100*24/a.length,2)}%. Así se obtiene exactamente la altura de esa barra.</div><div class="note"><b>Cómo leerla:</b> fᵢ dice cuántos datos hay en cada intervalo; hᵢ convierte esa cantidad en proporción; Fᵢ y Hᵢ acumulan los valores hasta ese intervalo. La marca de clase es el punto medio y sirve para representar la clase en el gráfico. La última clase incluye el máximo para asegurar que ningún dato quede fuera.</div></div></details>`;
+  html+=`<div class="card" style="margin-top:12px"><h3>Diagrama de frecuencia: cómo leerlo</h3><div class="sub">El eje horizontal representa los intervalos de ${esc(h)} y el eje vertical muestra la frecuencia absoluta. Las barras más altas indican dónde se concentra la información. Una forma aproximadamente simétrica sugiere concentración alrededor del centro; una cola más larga hacia un lado puede indicar asimetría. La tabla permite comprobar los conteos exactos que generan cada barra.</div><canvas id="descFreqChart" style="margin-top:10px"></canvas></div>`;
+  const group = CAT.find(c=>categories(c).length>0&&categories(c).length<=30);
+  if(group) html+=`<div class="note" style="margin-top:12px">Para ver este indicador separado por cada variante, usa la pestaña 6. Allí se generan tablas por Type, marca, Product ID, Failure Type u otra categoría detectada.</div>`;
+  $('descOutput').innerHTML=html;
+  chart('descFreqChart','bar',ft.rows.map(r=>`[${fmt(r.lo,2)}–${fmt(r.hi,2)}]`),[{label:'Frecuencia absoluta (fᵢ)',data:ft.rows.map(r=>r.fi)}],`Frecuencia de ${h}`);
+  addHistory('Descriptivos y tabla de frecuencias',`Variable: ${h}\nn=${a.length}\nMedia=${fmt(m)}\nMediana=${fmt(med)}\nModa=${mo}\nDesv. estándar=${fmt(s)}\nVarianza=${fmt(v)}\nSturges k=${ft.k}\nAmplitud de clase=${fmt(ft.w)}\nSe mostraron fórmulas con sustitución numérica y explicación de la tabla/gráfico.`);
+}
+function chart(canvasId,type,labels,datasets,title){
+  if(CHARTS[canvasId])CHARTS[canvasId].destroy();let c=document.getElementById(canvasId);if(!c)return;
+  CHARTS[canvasId]=new Chart(c,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:title,font:{size:16}},legend:{position:'bottom'},tooltip:{callbacks:{label:(ctx)=>`${ctx.dataset.label||'Valor'}: ${typeof ctx.raw==='number'?fmt(ctx.raw,4):ctx.raw}`}}},scales:{x:{title:{display:true,text:type==='bar'?'Intervalo / categoría':'Valor'}},y:{beginAtZero:true,title:{display:true,text:'Frecuencia / valor'}}}}});
+}
+$('runMedia').addEventListener('click',()=>{
+  let h=$('mediaVar').value;if(!h||!ROWS.length)return;
+  let a=numericValues(h),n=Math.max(2,+$('mediaN').value||30),M=Math.max(50,+$('mediaM').value||500),mu=mean(a),sigma=sd(a),means=Array.from({length:M},()=>mean(sample(a,n))),obs=sd(means),se=sigma/Math.sqrt(n),ft=freq(means);
+  $('mediaOut').innerHTML=`<div class="card"><h2>Resultado: ${esc(h)}</h2><div class="stats">${[['μ',mu],['σ',sigma],['n',n],['M',M],['Media(x̄)',mean(means)],['σx̄ teórico',se],['σx̄ observado',obs],['Diferencia SE %',100*Math.abs(obs-se)/se]].map(x=>`<div class="stat"><div class="v">${fmt(x[1])}</div><div class="l">${x[0]}</div></div>`).join('')}</div><div class="two"><div><canvas id="cmP"></canvas></div><div><canvas id="cm"></canvas></div></div><details open><summary>Tabla de frecuencias de x̄ explicada</summary><div class="inside"><div class="formula"><b>Qué representa:</b> cada fila agrupa las ${M} medias muestrales dentro de un intervalo. fᵢ = número de medias x̄ dentro del intervalo y hᵢ = fᵢ/${M}.</div><table><tr><th>Intervalo de x̄</th><th>fᵢ</th><th>hᵢ</th><th>Interpretación</th></tr>${ft.rows.map(r=>`<tr><td>[${fmt(r.lo,4)}, ${fmt(r.hi,4)}]</td><td>${r.fi}</td><td>${fmt(r.hiRel,4)}</td><td>${fmt(100*r.hiRel,2)}% de las medias simuladas</td></tr>`).join('')}</table></div></details><div class="formula"><b>Valor esperado:</b> E(x̄)=μ → ${fmt(mu)}. <b>Sustitución:</b> μ=Σx/n=${fmt(a.reduce((u,z)=>u+z,0),6)}/${a.length}=${fmt(mu,6)}.<br><b>Error estándar teórico:</b> σx̄=σ/√n → ${fmt(sigma)} / √${n} = ${fmt(se)}.<br><b>Lectura del gráfico:</b> las barras muestran dónde caen las medias muestrales; cuanto más concentradas estén alrededor de μ, menor es su variabilidad.</div></div>`;
+  let pop=freq(a);chart('cmP','bar',pop.rows.map(r=>fmt(r.mid,2)),[{label:'Frecuencia relativa',data:pop.rows.map(r=>r.hiRel)}],'Población');
+  chart('cm','bar',ft.rows.map(r=>fmt(r.mid,4)),[{label:'Frecuencia relativa x̄',data:ft.rows.map(r=>r.hiRel)}],'Distribución muestral de x̄');
+  RESULTS.media={h,a,n,M,mu,sigma,means,se,obs,ft};addHistory('Distribución muestral de x̄',`Variable=${h}\nn=${n}; M=${M}\nμ=${fmt(mu)}; σ=${fmt(sigma)}\nE(x̄) teórico=${fmt(mu)}\nσx̄=σ/√n=${fmt(se)}\nσx̄ observado=${fmt(obs)}\nSe generaron frecuencias y gráficos.`);
+});
+
+function cramersV(x,y){
+  let a=[...new Set(x)],b=[...new Set(y)],tab=a.map(()=>b.map(()=>0));for(let i=0;i<x.length;i++)tab[a.indexOf(x[i])][b.indexOf(y[i])]++;
+  let rows=tab.length,cols=tab[0].length,n=x.length,rs=tab.map(r=>r.reduce((s,v)=>s+v,0)),cs=b.map((_,j)=>tab.reduce((s,r)=>s+r[j],0)),chi=0;
+  for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){let e=rs[i]*cs[j]/n;if(e)chi+=(tab[i][j]-e)**2/e}
+  let denom=n*Math.min(rows-1,cols-1);return denom>0?Math.sqrt(chi/denom):0
+}
+function etaSquared(cat,num){
+  let all=num,m=mean(all),groups={};cat.forEach((g,i)=>(groups[g]??=[]).push(num[i]));let between=0;Object.values(groups).forEach(g=>between+=g.length*(mean(g)-m)**2);let total=all.reduce((s,x)=>s+(x-m)**2,0);return total?between/total:0
+}
+// ---- ANOVA de un factor: F de Fisher y p-value via función beta incompleta regularizada ----
+function gammaln(x){
+  const g=7,c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(x<0.5)return Math.log(Math.PI/Math.sin(Math.PI*x))-gammaln(1-x);
+  x-=1;let a=c[0],t=x+g+0.5;for(let i=1;i<g+2;i++)a+=c[i]/(x+i);
+  return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);
+}
+function betacf(x,a,b){
+  const MAXIT=200,EPS=3e-9,FPMIN=1e-30;let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN)d=FPMIN;d=1/d;let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;let del=d*c;h*=del;
+    if(Math.abs(del-1)<EPS)break;
+  }
+  return h;
+}
+function betai(x,a,b){
+  if(x<=0)return 0;if(x>=1)return 1;
+  let bt=Math.exp(gammaln(a+b)-gammaln(a)-gammaln(b)+a*Math.log(x)+b*Math.log(1-x));
+  if(x<(a+1)/(a+b+2))return bt*betacf(x,a,b)/a;
+  return 1-bt*betacf(1-x,b,a)/b;
+}
+function pValueF(F,d1,d2){
+  if(!Number.isFinite(F)||F<=0)return 1;
+  let x=d2/(d2+d1*F);
+  return betai(x,d2/2,d1/2);
+}
+function computeAnova(groupsObj){
+  const entries=Object.entries(groupsObj).filter(([g,a])=>a.length>0);
+  const k=entries.length;
+  const allVals=entries.flatMap(([g,a])=>a);
+  const N=allVals.length;
+  const grandMean=mean(allVals);
+  let SSB=0,SSW=0;
+  const rows=entries.map(([g,a])=>{
+    const ni=a.length,mi=mean(a),vi=variance(a);
+    SSB+=ni*(mi-grandMean)**2;
+    SSW+=(ni>1?vi*(ni-1):0);
+    return {g,n:ni,mean:mi,variance:vi,sd:Math.sqrt(vi)};
+  });
+  const SST=SSB+SSW;
+  const dfB=k-1,dfW=N-k;
+  const MSB=dfB>0?SSB/dfB:NaN;
+  const MSW=dfW>0?SSW/dfW:NaN;
+  const F=(MSW>0)?MSB/MSW:NaN;
+  const p=pValueF(F,dfB,dfW);
+  return {rows,k,N,grandMean,SSB,SSW,SST,dfB,dfW,MSB,MSW,F,p};
+}
+$('runGroup').addEventListener('click',()=>{
+  let c=$('groupVar').value,h=$('groupNum').value;if(!c||!h)return;let groups={};ROWS.forEach(r=>{let g=String(r[c]);let v=Number(String(r[h]).replace(',','.'));if(g&&Number.isFinite(v))(groups[g]??=[]).push(v)});
+  let rows=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length),eta=etaSquared(ROWS.map(r=>String(r[c])),numericValues(h)); // recalc aligned below
+  let aligned=[];ROWS.forEach(r=>{let v=Number(String(r[h]).replace(',','.'));if(Number.isFinite(v))aligned.push([String(r[c]),v])});eta=etaSquared(aligned.map(x=>x[0]),aligned.map(x=>x[1]));
+  $('groupOut').innerHTML=`<div class="card"><h2>${esc(h)} por cada variante de ${esc(c)}</h2><div class="stats"><div class="stat"><div class="v">${fmt(eta,4)}</div><div class="l">η² (asociación)</div></div><div class="stat"><div class="v">${rows.length}</div><div class="l">Variantes</div></div></div><table><tr><th>Variante</th><th>n</th><th>Media</th><th>Mediana</th><th>Desv. estándar</th><th>Mín</th><th>Máx</th></tr>${rows.map(([g,a])=>`<tr><td>${esc(g)}</td><td>${a.length}</td><td>${fmt(mean(a))}</td><td>${fmt(median(a))}</td><td>${fmt(sd(a))}</td><td>${fmt(Math.min(...a))}</td><td>${fmt(Math.max(...a))}</td></tr>`).join('')}</table><div class="formula"><b>Ejemplo solicitado:</b> si c = Marca/Type/Product ID y h = Tool wear [min], se obtiene el tiempo de uso resumido para CADA marca/variante. Para variables categóricas no se inventa un número: se usa η² para medir asociación categórica–numérica.</div></div>`;
+  RESULTS.group={c,h,rows,eta};addHistory('Análisis por variantes',`Variante=${c}\nVariable numérica=${h}\nVariantes analizadas=${rows.length}\nη²=${fmt(eta)}\nSe generó tabla de media, mediana, desviación, mínimo y máximo por variante.`);
+});
+$('runAnova').addEventListener('click',()=>{
+  if(!ROWS.length){alert('Primero carga y procesa un Excel o pega una tabla en la pestaña 1.');return}
+  const c=$('anovaCat').value,h=$('anovaNum').value,alpha=Math.min(0.5,Math.max(0.001,+$('anovaAlpha').value||0.05));
+  if(!c||!h){alert('Selecciona el factor (categórico) y la variable numérica.');return}
+  const groups={};ROWS.forEach(r=>{const g=String(r[c]);const v=Number(String(r[h]).replace(',','.'));if(g&&g!=='undefined'&&g!=='null'&&Number.isFinite(v))(groups[g]??=[]).push(v)});
+  const kRaw=Object.keys(groups).length;
+  if(kRaw<3){$('anovaOut').innerHTML=`<div class="card"><div class="status err">Se necesitan al menos 3 grupos con datos numéricos válidos para ANOVA. La variante "${esc(c)}" solo tiene ${kRaw} grupo(s) con datos. Prueba con otra variable categórica o usa una prueba t para 2 grupos.</div></div>`;return}
+  const R=computeAnova(groups);
+  const {rows,k,N,grandMean,SSB,SSW,SST,dfB,dfW,MSB,MSW,F,p}=R;
+  const reject=p<alpha;
+  const decision=reject
+    ?`Como p (${fmt(p,6)}) &lt; α (${fmt(alpha,4)}), se <b>rechaza H₀</b>. Existe evidencia estadística de que al menos una media de "${esc(h)}" difiere entre los grupos de "${esc(c)}".`
+    :`Como p (${fmt(p,6)}) ≥ α (${fmt(alpha,4)}), <b>no se rechaza H₀</b>. No hay evidencia suficiente para afirmar que las medias de "${esc(h)}" difieren entre los grupos de "${esc(c)}".`;
+
+  let html=`<div class="card resultHero"><h2>ANOVA: ${esc(h)} según ${esc(c)}</h2>
+  <div class="stats">
+  <div class="stat"><div class="v">${k}</div><div class="l">Grupos (k)</div></div>
+  <div class="stat"><div class="v">${N}</div><div class="l">N total</div></div>
+  <div class="stat"><div class="v">${fmt(F,4)}</div><div class="l">Estadístico F</div></div>
+  <div class="stat"><div class="v">${fmt(p,6)}</div><div class="l">p-value</div></div>
+  <div class="stat"><div class="v" style="color:${reject?'var(--danger)':'var(--good)'}">${reject?'Se rechaza H₀':'No se rechaza H₀'}</div><div class="l">Decisión (α=${fmt(alpha,4)})</div></div>
+  </div></div>`;
+
+  html+=`<div class="card"><h2>1. Estadísticos descriptivos por grupo</h2><table><tr><th>Grupo (${esc(c)})</th><th>n</th><th>Media</th><th>Varianza</th><th>Desv. estándar</th></tr>${rows.map(r=>`<tr><td>${esc(r.g)}</td><td>${r.n}</td><td>${fmt(r.mean,6)}</td><td>${fmt(r.variance,6)}</td><td>${fmt(r.sd,6)}</td></tr>`).join('')}<tr><td><b>Media global (x̄̄)</b></td><td><b>${N}</b></td><td><b>${fmt(grandMean,6)}</b></td><td>—</td><td>—</td></tr></table></div>`;
+
+  html+=`<div class="card"><h2>2. Tabla ANOVA</h2><table><tr><th>Fuente de variación</th><th>SS (suma de cuadrados)</th><th>df</th><th>MS (media cuadrática)</th><th>F</th><th>p-value</th></tr>
+  <tr><td>Entre grupos (tratamiento)</td><td>${fmt(SSB,6)}</td><td>${dfB}</td><td>${fmt(MSB,6)}</td><td><b>${fmt(F,6)}</b></td><td><b>${fmt(p,6)}</b></td></tr>
+  <tr><td>Dentro de grupos (error)</td><td>${fmt(SSW,6)}</td><td>${dfW}</td><td>${fmt(MSW,6)}</td><td>—</td><td>—</td></tr>
+  <tr><td><b>Total</b></td><td><b>${fmt(SST,6)}</b></td><td><b>${N-1}</b></td><td>—</td><td>—</td><td>—</td></tr></table></div>`;
+
+  html+=`<div class="card"><h2>3. Fórmulas con sustitución numérica</h2>
+  <div class="formulaStep"><b>SSB (entre grupos)</b><div class="math">SSB = Σ nᵢ(x̄ᵢ − x̄̄)² = ${rows.map(r=>`${r.n}(${fmt(r.mean,4)}−${fmt(grandMean,4)})²`).join(' + ')} = <b>${fmt(SSB,6)}</b></div></div>
+  <div class="formulaStep"><b>SSW (dentro de grupos)</b><div class="math">SSW = Σ(nᵢ−1)sᵢ² = ${rows.map(r=>`(${r.n}−1)(${fmt(r.variance,4)})`).join(' + ')} = <b>${fmt(SSW,6)}</b></div></div>
+  <div class="formulaStep"><b>SST (total)</b><div class="math">SST = SSB + SSW = ${fmt(SSB,6)} + ${fmt(SSW,6)} = <b>${fmt(SST,6)}</b></div></div>
+  <div class="formulaStep"><b>Grados de libertad</b><div class="math">df(entre) = k−1 = ${k}−1 = ${dfB}&nbsp;&nbsp;|&nbsp;&nbsp;df(dentro) = N−k = ${N}−${k} = ${dfW}</div></div>
+  <div class="formulaStep"><b>Medias cuadráticas</b><div class="math">MSB = SSB/df(entre) = ${fmt(SSB,6)}/${dfB} = <b>${fmt(MSB,6)}</b>&nbsp;&nbsp;|&nbsp;&nbsp;MSW = SSW/df(dentro) = ${fmt(SSW,6)}/${dfW} = <b>${fmt(MSW,6)}</b></div></div>
+  <div class="formulaStep"><b>Estadístico F</b><div class="math">F = MSB/MSW = ${fmt(MSB,6)}/${fmt(MSW,6)} = <b>${fmt(F,6)}</b></div></div>
+  <div class="formulaStep"><b>p-value</b><div class="math">p = P(F<sub>${dfB},${dfW}</sub> &gt; ${fmt(F,4)}) = <b>${fmt(p,6)}</b> (mediante la función beta incompleta regularizada)</div></div>
+  </div>`;
+
+  html+=`<div class="card"><h2>4. Decisión estadística</h2><div class="formula"><b>H₀:</b> μ₁ = μ₂ = ... = μ<sub>${k}</sub>&nbsp;&nbsp;|&nbsp;&nbsp;<b>H₁:</b> al menos una media difiere<br><br>${decision}</div>
+  <div class="note ${reject?'success':'warn'}">${reject?'⚠️ Diferencia significativa detectada. Se recomienda una prueba post-hoc (por ejemplo, Tukey HSD) para identificar entre qué grupos específicos está la diferencia.':'ℹ️ No se detectó diferencia significativa entre las medias de los grupos con el nivel de significancia elegido.'}</div></div>`;
+
+  html+=`<div class="card"><h2>5. Comparación visual de medias por grupo</h2><div class="chartbox"><canvas id="anovaChart"></canvas></div><div class="note">Cada barra muestra la media de "${esc(h)}" en cada grupo; la línea punteada horizontal representa la media global (x̄̄=${fmt(grandMean,4)}). Cuanto más se alejen las barras de esa línea en relación con la dispersión interna de cada grupo, mayor es la señal que detecta ANOVA.</div></div>`;
+
+  $('anovaOut').innerHTML=html;
+  if(CHARTS.anovaChart)CHARTS.anovaChart.destroy();
+  const ctx=document.getElementById('anovaChart');
+  CHARTS.anovaChart=new Chart(ctx,{type:'bar',data:{labels:rows.map(r=>r.g),datasets:[{label:`Media de ${h}`,data:rows.map(r=>r.mean),backgroundColor:'#2fa3b8'}]},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:true,text:`Media de ${h} por grupo de ${c}`,font:{size:16}},legend:{position:'bottom'},annotation:undefined,tooltip:{callbacks:{label:(ctx)=>`Media: ${fmt(ctx.raw,4)}`}}},scales:{y:{title:{display:true,text:h}},x:{title:{display:true,text:c}}}}});
+
+  RESULTS.anova={c,h,alpha,k,N,grandMean,SSB,SSW,SST,dfB,dfW,MSB,MSW,F,p,reject,rows};
+  addHistory('ANOVA de un factor',`Factor=${c}\nVariable numérica=${h}\nGrupos=${k}; N=${N}\nSSB=${fmt(SSB)}; SSW=${fmt(SSW)}; SST=${fmt(SST)}\nMSB=${fmt(MSB)}; MSW=${fmt(MSW)}\nF=${fmt(F,6)}; p=${fmt(p,6)}; α=${fmt(alpha)}\nDecisión: ${reject?'Se rechaza H0 (hay diferencias significativas)':'No se rechaza H0 (no hay diferencias significativas)'}`);
+});
+function corrInterpret(r,method){
+  if(method==='Pearson' || method==='Spearman'){
+    let ar=Math.abs(r), strength=ar<.1?'prácticamente nula':ar<.3?'débil':ar<.5?'moderada':ar<.7?'considerable':'fuerte';
+    let dir=r>0?'positiva':r<0?'negativa':'nula';
+    return `La relación lineal es ${dir} y ${strength} (coeficiente = ${fmt(r,4)}). ${r>0?'Cuando una variable aumenta, la otra tiende a aumentar.':r<0?'Cuando una variable aumenta, la otra tiende a disminuir.':'No se observa una relación lineal apreciable.'} Esto describe asociación, no demuestra causalidad.`;
+  }
+  if(method==='η²'){
+    return `η² = ${fmt(r,4)} significa que aproximadamente ${fmt(100*r,2)}% de la variabilidad de la variable numérica está asociada con las diferencias entre las categorías analizadas. No implica causalidad.`;
+  }
+  return `V de Cramér = ${fmt(r,4)} indica una asociación de intensidad ${Math.abs(r)<.1?'prácticamente nula':Math.abs(r)<.3?'débil':Math.abs(r)<.5?'moderada':'fuerte'} entre las dos variables categóricas.`;
+}
+function pearsonDetail(x,y){
+  let n=x.length,mx=mean(x),my=mean(y),sx=x.reduce((a,v)=>a+v,0),sy=y.reduce((a,v)=>a+v,0),sxy=x.reduce((a,v,i)=>a+v*y[i],0),sx2=x.reduce((a,v)=>a+v*v,0),sy2=y.reduce((a,v)=>a+v*v,0);
+  let num=n*sxy-sx*sy, den=Math.sqrt((n*sx2-sx*sx)*(n*sy2-sy*sy));
+  return {n,mx,my,sx,sy,sxy,sx2,sy2,num,den,r:den?num/den:NaN};
+}
+function etaDetail(cat,num){
+  let m=mean(num),groups={};cat.forEach((g,i)=>(groups[g]??=[]).push(num[i]));
+  let between=0, parts=[];for(const [g,a] of Object.entries(groups)){let gm=mean(a),term=a.length*(gm-m)**2;between+=term;parts.push(`${esc(g)}: ${a.length}×(${fmt(gm,4)}−${fmt(m,4)})²=${fmt(term,4)}`)}
+  let total=num.reduce((s,v)=>s+(v-m)**2,0);return {m,groups,between,total,parts,eta:total?between/total:0};
+}
+$('runAllCorr').addEventListener('click',()=>{
+  let list=[],details=[];
+  for(let i=0;i<NUM.length;i++)for(let j=i+1;j<NUM.length;j++){
+    let a=[],b=[];ROWS.forEach(r=>{let x=Number(String(r[NUM[i]]).replace(',','.')),y=Number(String(r[NUM[j]]).replace(',','.'));if(Number.isFinite(x)&&Number.isFinite(y)){a.push(x);b.push(y)}});
+    if(a.length>2){let d=pearsonDetail(a,b),sp=spearman(a,b);list.push([NUM[i],NUM[j],'Pearson',d.r]);list.push([NUM[i],NUM[j],'Spearman',sp]);details.push({a:NUM[i],b:NUM[j],method:'Pearson',value:d.r,detail:d});let rx=ranks(a),ry=ranks(b); details.push({a:NUM[i],b:NUM[j],method:'Spearman',value:sp,detail:pearsonDetail(rx,ry)})}
+  }
+  for(let c of CAT)for(let n of NUM){let a=[],b=[];ROWS.forEach(r=>{let v=Number(String(r[n]).replace(',','.'));if(Number.isFinite(v)&&String(r[c])!==''){a.push(String(r[c]));b.push(v)}});if(a.length>2){let d=etaDetail(a,b);list.push([c,n,'η²',d.eta]);details.push({a:c,b:n,method:'η²',value:d.eta,detail:d})}}
+  for(let i=0;i<CAT.length;i++)for(let j=i+1;j<CAT.length;j++){let x=[],y=[];ROWS.forEach(r=>{if(r[CAT[i]]!==''&&r[CAT[j]]!==''){x.push(String(r[CAT[i]]));y.push(String(r[CAT[j]]))}});if(x.length>2&&categories(CAT[i]).length<50&&categories(CAT[j]).length<50){let v=cramersV(x,y);list.push([CAT[i],CAT[j],'V de Cramér',v]);details.push({a:CAT[i],b:CAT[j],method:'V de Cramér',value:v,detail:{n:x.length}})}}
+  list.sort((a,b)=>Math.abs(b[3])-Math.abs(a[3]));
+  let rowsHtml=list.map((x,idx)=>`<tr><td>${esc(x[0])}</td><td>${esc(x[1])}</td><td>${x[2]}</td><td><b>${fmt(x[3],4)}</b></td><td>${corrInterpret(x[3],x[2])}</td><td><button class="miniCorr" data-corr="${idx}">Ver cálculo</button></td></tr>`).join('');
+  let detailHtml=details.map((d,idx)=>{
+    if(d.method==='Pearson'){
+      let q=d.detail;return `<details class="corrDetail"><summary><b>${esc(d.a)} ↔ ${esc(d.b)}</b> — Pearson = ${fmt(d.value,4)}</summary><div class="inside"><div class="formula"><b>¿Qué significa?</b> La correlación estadística mide cuánto y cómo se relacionan dos variables numéricas. Aquí se demuestra usando los factores numéricos de las observaciones.<br><br><b>Fórmula:</b> r = [nΣxy − (Σx)(Σy)] / √{[nΣx² − (Σx)²][nΣy² − (Σy)²]}<br><b>Sustitución:</b> r = [${q.n}×${fmt(q.sxy,4)} − (${fmt(q.sx,4)})×(${fmt(q.sy,4)})] / √{[${q.n}×${fmt(q.sx2,4)} − (${fmt(q.sx,4)})²][${q.n}×${fmt(q.sy2,4)} − (${fmt(q.sy,4)})²]}<br><b>Numerador:</b> ${fmt(q.num,6)}<br><b>Denominador:</b> ${fmt(q.den,6)}<br><b>Resultado:</b> r = ${fmt(q.num,6)} / ${fmt(q.den,6)} = <b>${fmt(q.r,6)}</b><br><b>Interpretación:</b> ${corrInterpret(q.r,'Pearson')}</div><div class="note"><b>Factores usados:</b> n=${q.n}, Σx=${fmt(q.sx,4)}, Σy=${fmt(q.sy,4)}, Σxy=${fmt(q.sxy,4)}, Σx²=${fmt(q.sx2,4)}, Σy²=${fmt(q.sy2,4)}. Estos son los valores numéricos que reemplazan la fórmula.</div></div></details>`;
+    }
+    if(d.method==='Spearman') { let q=d.detail; return `<details class="corrDetail"><summary><b>${esc(d.a)} ↔ ${esc(d.b)}</b> — Spearman = ${fmt(d.value,4)}</summary><div class="inside"><div class="formula"><b>Qué mide:</b> la asociación monotónica entre dos variables numéricas usando sus rangos.<br><b>Fórmula operativa:</b> ρ = Corr(Rx,Ry).<br><b>Valores usados:</b> n=${q.n}; ΣRx=${fmt(q.sx,4)}; ΣRy=${fmt(q.sy,4)}; ΣRxRy=${fmt(q.sxy,4)}; ΣRx²=${fmt(q.sx2,4)}; ΣRy²=${fmt(q.sy2,4)}.<br><b>Sustitución:</b> se reemplazan estos factores en la fórmula de Pearson aplicada a los rangos. <br><b>Resultado:</b> ρ = <b>${fmt(d.value,6)}</b>.</div><div class="note"><b>Interpretación:</b> ${corrInterpret(d.value,'Spearman')}</div></div></details>`; }
+    if(d.method==='η²'){let q=d.detail;return `<details class="corrDetail"><summary><b>${esc(d.a)} ↔ ${esc(d.b)}</b> — η² = ${fmt(d.value,4)}</summary><div class="inside"><div class="formula"><b>Fórmula:</b> η² = SS<sub>entre</sub> / SS<sub>total</sub>.<br><b>Media general:</b> μ = ${fmt(q.m,6)}.<br><b>SS<sub>entre</sub>:</b> Σ nⱼ(μⱼ−μ)² = ${q.parts.join(' + ')} = <b>${fmt(q.between,6)}</b>.<br><b>SS<sub>total</sub>:</b> Σ(xᵢ−μ)² = <b>${fmt(q.total,6)}</b>.<br><b>Sustitución:</b> η² = ${fmt(q.between,6)} / ${fmt(q.total,6)} = <b>${fmt(q.eta,6)}</b>.</div><div class="note"><b>Interpretación:</b> ${corrInterpret(q.eta,'η²')}</div></div></details>`;}
+    return `<details class="corrDetail"><summary><b>${esc(d.a)} ↔ ${esc(d.b)}</b> — V de Cramér = ${fmt(d.value,4)}</summary><div class="inside"><div class="formula"><b>Fórmula:</b> V = √[χ² / (n·min(r−1,c−1))].<br><b>n:</b> ${d.detail.n}.<br><b>Resultado calculado:</b> V = <b>${fmt(d.value,6)}</b>.</div><div class="note"><b>Interpretación:</b> ${corrInterpret(d.value,'V de Cramér')}</div></div></details>`;
+  }).join('');
+  $('corrOut').innerHTML=`<div class="card"><h2>Correlación estadística: explicada y demostrada</h2><div class="sub"><b>La correlación estadística</b> es una medida que sirve para saber cuánto y cómo se relacionan dos variables entre sí. En variables numéricas se demuestra sustituyendo los valores reales del archivo en la fórmula de Pearson o Spearman. Para variables categóricas se utilizan η² o V de Cramér, según corresponda.</div><table><tr><th>Variable A</th><th>Variable B</th><th>Método</th><th>Coeficiente</th><th>¿Qué significa?</th><th>Cálculo</th></tr>${rowsHtml}</table><div class="note"><b>Regla de lectura de Pearson/Spearman:</b> el signo indica la dirección (+ directa, − inversa) y |r| indica la intensidad. Un valor cercano a 0 indica poca relación lineal/monótona; uno cercano a 1 o −1 indica una relación fuerte. <b>Importante:</b> correlación no significa causalidad.</div></div><div class="card"><h2>Demostración numérica de cada asociación</h2><div class="sub">Abre “Ver cálculo” para ver la fórmula, los valores que sustituyen cada símbolo y el resultado obtenido.</div>${detailHtml}</div>`;
+  $('corrOut').querySelectorAll('.miniCorr').forEach(btn=>btn.addEventListener('click',()=>{let ds=$('corrOut').querySelectorAll('.corrDetail');let idx=Number(btn.dataset.corr);let target=details.findIndex(d=>d.a===list[idx][0]&&d.b===list[idx][1]&&d.method===list[idx][2]);if(target>=0){let el=ds[target];el.open=true;el.scrollIntoView({behavior:'smooth',block:'center'})}}));
+  RESULTS.corr=list;RESULTS.corrDetails=details;addHistory('Matriz de correlaciones/asociaciones',`Pares analizados=${list.length}\nMétodos: Pearson, Spearman, η² y V de Cramér.\nCada resultado incluye fórmula, sustitución de factores numéricos e interpretación.`);
+});
+
+$('runProp').addEventListener('click',()=>{
+  let h=$('propVar').value,level=$('propLevel').value;if(!h)return;let raw=valuesFor(h).map(String),p=raw.filter(x=>x===level).length/raw.length,n=Math.max(2,+$('propN').value||30),M=Math.max(50,+$('propM').value||500),ps=Array.from({length:M},()=>sample(raw,n).filter(x=>x===level).length/n),se=Math.sqrt(p*(1-p)/n),ft=freq(ps);
+  let successes=raw.filter(x=>x===level).length;let pMean=mean(ps);$('propOut').innerHTML=`<div class="card"><h2>${esc(h)} → éxito = ${esc(level)}</h2><div class="stats">${[['Éxitos',successes],['N población',raw.length],['p poblacional',p],['n muestra',n],['M muestras',M],['Media p̂',pMean],['σp̂ teórico',se],['σp̂ observado',sd(ps)]].map(x=>`<div class="stat"><div class="v">${fmt(x[1])}</div><div class="l">${x[0]}</div></div>`).join('')}</div><div class="explain"><b>Demostración de p:</b> p = X/N = ${successes}/${raw.length} = ${fmt(p,6)}. En cada muestra, p̂ = x/n; por ejemplo, si una muestra contiene x éxitos, su p̂ se obtiene dividiendo ese conteo entre ${n}. La tabla agrupa las ${M} proporciones simuladas.</div><div class="chartbox"><canvas id="propChart"></canvas></div><table><tr><th>Intervalo p̂</th><th>Marca de clase</th><th>fᵢ</th><th>Fᵢ</th><th>hᵢ</th><th>Hᵢ</th><th>Interpretación</th></tr>${ft.rows.map(r=>`<tr><td>[${fmt(r.lo,4)}, ${fmt(r.hi,4)}]</td><td>${fmt(r.mid,4)}</td><td>${r.fi}</td><td>${r.Fi}</td><td>${fmt(r.hiRel,4)}</td><td>${fmt(r.Hi,4)}</td><td>${r.fi} de ${M} muestras = ${fmt(100*r.hiRel,2)}%</td></tr>`).join('')}</table><div class="formula"><b>Fórmulas con sustitución:</b><br>p = X/N = ${successes}/${raw.length} = ${fmt(p,6)}.<br>p̂ = x/n.<br>E(p̂)=p=${fmt(p,6)}.<br>σp̂=√[p(1−p)/n] = √[${fmt(p,6)}×(1−${fmt(p,6)})/${n}] = ${fmt(se,6)}.<br><b>Conclusión:</b> la media de las p̂ simuladas (${fmt(pMean,6)}) debe quedar próxima a p=${fmt(p,6)}.</div></div>`;chart('propChart','bar',ft.rows.map(r=>`[${fmt(r.lo,3)}–${fmt(r.hi,3)}]`),[{label:'Frecuencia de p̂ (fᵢ)',data:ft.rows.map(r=>r.fi)}],`Distribución muestral de p̂ — ${h}`);
+  RESULTS.prop={h,level,p,n,M,ps,se};addHistory('Distribución muestral de p̂',`Variable=${h}; éxito=${level}\np=${fmt(p)}; n=${n}; M=${M}\nE(p̂)=${fmt(mean(ps))}\nσp̂ teórico=${fmt(se)}; observado=${fmt(sd(ps))}\nTabla de frecuencias generada.`);
+});
+
+$('runTlc').addEventListener('click',()=>{
+  let h=$('tlcVar').value;if(!h)return;let a=numericValues(h),mu=mean(a),sigma=sd(a),ns=[...new Set($('tlcNs').value.split(',').map(x=>Math.floor(+x.trim())).filter(x=>x>=2&&x<=100000))].sort((a,b)=>a-b);if(!ns.length){alert('Introduce al menos un tamaño n válido (n ≥ 2).');return}let table=ns.map(n=>[n,sigma/Math.sqrt(n)]);let html=`<div class="card"><h2>TLC — ${esc(h)}</h2><div class="stats"><div class="stat"><div class="v">${fmt(mu)}</div><div class="l">μ</div></div><div class="stat"><div class="v">${fmt(sigma)}</div><div class="l">σ</div></div><div class="stat"><div class="v">${a.length}</div><div class="l">N datos</div></div></div>`;
+  if($('tlcMode').value!=='table')html+='<canvas id="tlcChart"></canvas>';html+='<table><tr><th>n</th><th>σx̄ = σ/√n</th><th>Interpretación</th></tr>'+table.map(r=>`<tr><td>${r[0]}</td><td>${fmt(r[1])}</td><td>Distribución más estrecha alrededor de μ</td></tr>`).join('')+'</table><div class="formula">E(x̄)=μ='+fmt(mu)+'<br>σx̄=σ/√n. Al aumentar n, el error estándar disminuye.</div></div>';$('tlcOut').innerHTML=html;
+  if($('tlcMode').value!=='table'){let smax=Math.max(...table.map(x=>x[1]),sigma),ser=ns.map((n,i)=>{let z=normalSeries(mu,sigma/Math.sqrt(n));return {label:`n=${n}`,data:z.ys,pointRadius:0,borderWidth:2}});let z=normalSeries(mu,smax);chart('tlcChart','line',z.xs.map(x=>x.toFixed(3)),ser.map((d,i)=>({...d,data:normalSeries(mu,sigma/Math.sqrt(ns[i])).ys})),'TLC: distribución de x̄');}
+  RESULTS.tlc={h,mu,sigma,table};addHistory('Teorema del Límite Central',`Variable=${h}\nμ=${fmt(mu)}; σ=${fmt(sigma)}\nTamaños n=${ns.join(', ')}\nSe generó σx̄=σ/√n y curvas del TLC.`);
+});
+
+
+function invNorm(p){
+  // Acklam approximation for standard normal inverse CDF
+  const a=[-39.6968302866538,220.946098424521,-275.928510446969,138.357751867269,-30.6647980661472,2.50662827745924],b=[-54.4760987982241,161.585836858041,-155.698979859887,66.8013118877197,-13.2806815528857],c=[-0.00778489400243029,-0.322396458041136,-2.40075827716184,-2.54973253934373,4.37466414146497,2.93816398269878],d=[0.00778469570904146,0.32246712907004,2.445134137143,3.75440866190742];
+  if(p<=0||p>=1)return NaN;let q,r;
+  if(p<0.02425){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+  if(p>0.97575){q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+  r=(p-.5)**2;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*(p-.5)/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+function seededRandom(seed){let x=(Number(seed)>>>0)||123456789;return ()=>{x=(1664525*x+1013904223)>>>0;return x/4294967296}}
+function runExcelModel(){
+  let N=Math.max(1,Math.floor(+$('ecN').value||1)),X=Math.min(N,Math.max(0,Math.floor(+$('ecX').value||0))),conf=Math.min(99.99,Math.max(50,+$('ecConf').value||95)),e=Math.max(.000001,+$('ecE').value||.05),n=Math.max(2,Math.floor(+$('ecSampleN').value||30)),M=Math.max(50,Math.floor(+$('ecM').value||1000)),k=Math.max(2,Math.floor(+$('ecK').value||10));
+  const p=X/N,q=1-p,alpha=1-conf/100,z=invNorm(1-alpha/2),nFinite=(N*z*z*p*q)/(e*e*(N-1)+z*z*p*q),nRound=Math.ceil(nFinite),se=Math.sqrt(p*q/n),rng=$('ecSeed').value.trim()?seededRandom($('ecSeed').value):Math.random;
+  let phats=[];for(let j=0;j<M;j++){let sx=0;for(let i=0;i<n;i++)if(rng()<p)sx++;phats.push(sx/n)}
+  const pMean=mean(phats),pSd=sd(phats),min=Math.min(...phats),max=Math.max(...phats),width=(max-min)/k||1;let fr=[];for(let i=0;i<k;i++){let lo=min+i*width,hi=i===k-1?max:min+(i+1)*width,fi=phats.filter(v=>i===k-1?v>=lo&&v<=hi:v>=lo&&v<hi).length;fr.push({lo,hi,mid:(lo+hi)/2,fi})}let F=0;fr.forEach(r=>{F+=r.fi;r.Fi=F;r.hi=r.fi/M;r.Hi=r.Fi/M});
+  const mu=p,ciL=p-z*Math.sqrt(p*q/n),ciU=p+z*Math.sqrt(p*q/n),systematicK=N/n,positions=Array.from({length:Math.min(n,30)},(_,i)=>1+i*Math.max(1,Math.floor(systematicK)));
+  const xs=[];for(let i=0;i<=120;i++)xs.push(min+(max-min)*i/120);const ys=xs.map(x=>normalPDF(x,p,se));
+  $('excelCalcOut').innerHTML=`<div class="card resultHero"><h2>Resultados principales</h2><div class="stats">${[['p poblacional',p],['q=1−p',q],['Z crítico',z],['n calculado',nFinite],['n redondeado',nRound],['σp̂',se],['Media p̂ simulada',pMean],['s observada p̂',pSd]].map(x=>`<div class="stat"><div class="v">${fmt(x[1],6)}</div><div class="l">${x[0]}</div></div>`).join('')}</div></div>
+  <div class="card excelCalc"><h2>1. Proporción poblacional y complemento</h2><div class="formula"><div class="formulaStep"><b>Proporción</b><span>p = X/N = ${X}/${N} = <b>${fmt(p,6)}</b></span></div><div class="formulaStep"><b>Complemento</b><span>q = 1 − p = 1 − ${fmt(p,6)} = <b>${fmt(q,6)}</b></span></div></div></div>
+  <div class="card excelCalc"><h2>2. Tamaño de muestra con población finita</h2><div class="formula"><b>Fórmula usada en el Excel:</b><br>n = (N·Z²·p·q) / [e²(N−1) + Z²·p·q]<br><br><b>Sustitución:</b><br>n = (${N}·${fmt(z,6)}²·${fmt(p,6)}·${fmt(q,6)}) / [${fmt(e,6)}²·(${N}−1) + ${fmt(z,6)}²·${fmt(p,6)}·${fmt(q,6)}] = <b>${fmt(nFinite,6)}</b><br><b>Redondeo:</b> ROUNDUP(${fmt(nFinite,6)},0) = <b>${nRound}</b>.</div></div>
+  <div class="card excelCalc"><h2>3. Muestreo sistemático</h2><div class="formula">k = N/n = ${N}/${n} = <b>${fmt(systematicK,6)}</b>.<br>Si se usa un salto entero: k* = floor(N/n) = <b>${Math.max(1,Math.floor(systematicK))}</b>.<br>Posiciones de ejemplo: <b>${positions.join(', ')}${n>30?' …':''}</b>.<br><span class="note">Esto reproduce la lógica de posiciones consecutivas con salto que aparece en la hoja de distribución muestral.</span></div></div>
+  <div class="card excelCalc"><h2>4. Distribución muestral de p̂</h2><div class="formula">p̂ = x/n.<br>E(p̂) = p = <b>${fmt(p,6)}</b>.<br>σp̂ = √[p(1−p)/n] = √[${fmt(p,6)}·${fmt(q,6)}/${n}] = <b>${fmt(se,6)}</b>.<br>En la simulación se generaron <b>${M}</b> muestras y se calculó p̂ para cada una.</div><div class="chartbox"><canvas id="excelPropChart"></canvas></div><table><tr><th>Intervalo p̂</th><th>Marca</th><th>fᵢ</th><th>Fᵢ</th><th>hᵢ</th><th>Hᵢ</th></tr>${fr.map(r=>`<tr><td>[${fmt(r.lo,5)}, ${fmt(r.hi,5)}]</td><td>${fmt(r.mid,5)}</td><td>${r.fi}</td><td>${r.Fi}</td><td>${fmt(r.hi,5)}</td><td>${fmt(r.Hi,5)}</td></tr>`).join('')}</table></div>
+  <div class="card excelCalc"><h2>5. Distribución normal de p̂</h2><div class="formula">f(p̂) = [1/(σp̂√(2π))]·e<sup>−½((p̂−p)/σp̂)²</sup>.<br>Centro de la curva: μp̂ = <b>${fmt(p,6)}</b>. Desviación: σp̂ = <b>${fmt(se,6)}</b>.</div><div class="chartbox"><canvas id="excelNormalChart"></canvas></div></div>
+  <div class="card excelCalc"><h2>6. Intervalo de confianza para la proporción</h2><div class="formula">IC = p ± Z·√[p(1−p)/n]<br>IC = ${fmt(p,6)} ± ${fmt(z,6)}·√[${fmt(p,6)}·${fmt(q,6)}/${n}]<br>IC = <b>[${fmt(ciL,6)}, ${fmt(ciU,6)}]</b> (${conf}% de confianza).</div></div>`;
+  chart('excelPropChart','bar',fr.map(r=>`[${fmt(r.lo,3)}–${fmt(r.hi,3)}]`),[{label:'Frecuencia de p̂',data:fr.map(r=>r.fi)}],'Distribución muestral de la proporción p̂');
+  chart('excelNormalChart','line',xs.map(x=>fmt(x,5)),[{label:'Densidad normal de p̂',data:ys,pointRadius:0,borderWidth:2}],'Distribución normal de p̂');
+  RESULTS.excelCalc={N,X,conf,e,n,M,k,p,q,z,nFinite,nRound,se,pMean,pSd,fr,ciL,ciU,systematicK,positions};
+  addHistory('Calculadora del modelo del Excel',`N=${N}; X=${X}; p=${fmt(p,6)}; q=${fmt(q,6)}\nConfianza=${conf}%; Z=${fmt(z,6)}; e=${fmt(e,6)}\nn finito=${fmt(nFinite,6)}; n redondeado=${nRound}\nn simulación=${n}; M=${M}\nMedia p̂=${fmt(pMean,6)}; σp̂ teórico=${fmt(se,6)}; observado=${fmt(pSd,6)}\nIC=${fmt(ciL,6)} a ${fmt(ciU,6)}\nSe generaron tabla de frecuencias y dos gráficos de p̂.`);
+}
+$('runExcelCalc').addEventListener('click',runExcelModel);
+$('useLoadedData').addEventListener('click',()=>{if(!CAT.length){alert('Primero carga un archivo con una variable categórica.');return}let h=$('ecCatVar').value,level=$('ecCatLevel').value,raw=valuesFor(h).map(String),N=raw.length,X=raw.filter(v=>v===level).length;$('ecN').value=N;$('ecX').value=X;runExcelModel();});
+
+$('finish').addEventListener('click',()=>{
+  if(!ROWS.length){setStatus('Primero carga el archivo o pega los datos.',false);return}
+  buildDescriptives();
+  if(NUM.length){$('runMedia').click();$('runTlc').click()}
+  if(CAT.length){updatePropLevels();$('runProp').click();$('runGroup').click();$('runAllCorr').click();fillExcelCalcSelectors();if($('ecCatVar').value)$('useLoadedData').click()}
+  document.querySelector('[data-tab="descriptivos"]').click();window.scrollTo({top:0,behavior:'smooth'});
+  addHistory('ANÁLISIS COMPLETO FINALIZADO',`Se ejecutaron los módulos disponibles sobre ${ROWS.length} filas y ${HEADERS.length} columnas.\nSe generaron: descriptivos, tablas de frecuencia, distribución de x̄, p̂, TLC, análisis por variantes y asociaciones/correlaciones.\nListo para exportar PDF y Excel.`)
+});
+
+function collectFormulaRows(){
+  let rows=[];
+  NUM.forEach(h=>{let a=numericValues(h),ft=freq(a);rows.push({h,a,ft,stats:{n:a.length,mean:mean(a),median:median(a),mode:mode(a),sd:sd(a),variance:variance(a),min:Math.min(...a),max:Math.max(...a)}})});return rows
+}
+async function exportExcel(){
+  try{
+    if(!ROWS.length){alert('No hay datos procesados. Primero carga y procesa un archivo.');return}
+    if(typeof XLSX==='undefined'){
+      alert('No se pudo cargar el motor de Excel (XLSX). Verifica tu conexión a internet y vuelve a abrir el archivo.');
+      return;
+    }
+    const wb=XLSX.utils.book_new();
+    wb.Props={Title:'Análisis Estadístico Completo',Subject:'Descriptivos, frecuencias, distribuciones, TLC y correlaciones',Author:'Analizador Estadístico para Ingenieros'};
+    const addSheet=(name,data)=>{const ws=XLSX.utils.aoa_to_sheet(data);XLSX.utils.book_append_sheet(wb,ws,name)};
+    const formulaCell=(f,v)=>({f:f,v:v});
+
+    // 1. DATOS: conserva la estructura tabular original
+    const data=[HEADERS,...ROWS.map(r=>HEADERS.map(h=>r[h]))];
+    addSheet('Datos',data);
+
+    // 2. DESCRIPTIVOS: fórmula de Excel + valor calculado + sustitución
+    const ds=[['Variable','n','Media (fórmula)','Media (resultado)','Mediana (fórmula)','Mediana (resultado)','Moda','Desv. estándar (fórmula)','Desv. estándar (resultado)','Varianza (fórmula)','Varianza (resultado)','Mínimo','Máximo','Rango','Sustitución / explicación']];
+    collectFormulaRows().forEach(x=>{
+      const j=HEADERS.indexOf(x.h)+1, col=colLetter(j), end=ROWS.length+1, a=x.a, st=x.stats;
+      ds.push([x.h,a.length,
+        formulaCell(`AVERAGE(Datos!${col}2:${col}${end})`,st.mean),st.mean,
+        formulaCell(`MEDIAN(Datos!${col}2:${col}${end})`,st.median),st.median,st.mode,
+        formulaCell(`STDEV.S(Datos!${col}2:${col}${end})`,st.sd),st.sd,
+        formulaCell(`VAR.S(Datos!${col}2:${col}${end})`,st.variance),st.variance,st.min,st.max,
+        formulaCell(`M${ds.length+1}-L${ds.length+1}`,st.max-st.min),
+        `Media: Σx/n = ${fmt(a.reduce((u,z)=>u+z,0),6)}/${a.length} = ${fmt(st.mean,6)}. Varianza: Σ(xᵢ−x̄)²/(n−1) = ${fmt(st.variance,6)}. Desv.: √${fmt(st.variance,6)} = ${fmt(st.sd,6)}.`]);
+    });
+    addSheet('Descriptivos',ds);
+
+    // 3. FRECUENCIAS
+    const fq=[['Variable','n','k clases','Rango','Amplitud','Límite inferior','Límite superior','Marca de clase','fᵢ','Fᵢ','hᵢ','Hᵢ','Explicación']];
+    collectFormulaRows().forEach(x=>{
+      const n=x.a.length, k=x.ft.rows.length, range=x.stats.max-x.stats.min, amp=k?range/k:0;
+      x.ft.rows.forEach((r,idx)=>fq.push([x.h,n,k,range,amp,r.lo,r.hi,r.mid,r.fi,r.Fi,r.hiRel,r.Hi,`${r.fi} datos están dentro del intervalo [${fmt(r.lo,4)}, ${fmt(r.hi,4)}], equivalentes a ${fmt(r.hiRel*100,2)}% del total.`]));
+    });
+    addSheet('Frecuencias',fq);
+
+    // 4. VARIANTES
+    const vg=[['Variable categórica','Variable numérica','Categoría','n','Media','Mediana','Desv. estándar','Mínimo','Máximo','η²','Interpretación']];
+    for(const c of CAT) for(const n of NUM){
+      const aligned=[];ROWS.forEach(r=>{const v=Number(String(r[n]).replace(',','.'));if(Number.isFinite(v))aligned.push([String(r[c]),v])});
+      if(aligned.length){const eta=etaSquared(aligned.map(z=>z[0]),aligned.map(z=>z[1]));const gs={};aligned.forEach(z=>(gs[z[0]]??=[]).push(z[1]));Object.entries(gs).forEach(([g,a])=>vg.push([c,n,g,a.length,mean(a),median(a),sd(a),Math.min(...a),Math.max(...a),eta,`η²=${fmt(eta,6)}: asociación de ${c} con la variabilidad de ${n}.`]))}
+    }
+    addSheet('Variantes',vg);
+
+    // 5. CORRELACIONES
+    const co=[['Variable A','Variable B','Método','Coeficiente','Interpretación']];
+    (RESULTS.corr||[]).forEach(r=>co.push(r));
+    addSheet('Correlaciones',co);
+
+    // 6. DETALLE NUMÉRICO DE CORRELACIONES
+    const cf=[['Variable A','Variable B','Método','n','ΣX / categorías','ΣY','ΣXY','ΣX² / SS','ΣY² / SS','Numerador / SSentre','Denominador / SStotal','Coeficiente','Fórmula','Sustitución / explicación']];
+    (RESULTS.corrDetails||[]).forEach(d=>{
+      if(d.method==='Pearson'){const q=d.detail;cf.push([d.a,d.b,d.method,q.n,q.sx,q.sy,q.sxy,q.sx2,q.sy2,q.num,q.den,d.value,'r=[nΣxy−(Σx)(Σy)]/√{[nΣx²−(Σx)²][nΣy²−(Σy)²]}',`r=[(${q.n})(${fmt(q.sxy,6)})−(${fmt(q.sx,6)})(${fmt(q.sy,6)})]/√{[(${q.n})(${fmt(q.sx2,6)})−(${fmt(q.sx,6)})²][(${q.n})(${fmt(q.sy2,6)})−(${fmt(q.sy,6)})²]} = ${fmt(d.value,6)}`])}
+      else if(d.method==='Spearman'){const q=d.detail;cf.push([d.a,d.b,d.method,q.n,q.sx,q.sy,q.sxy,q.sx2,q.sy2,q.num,q.den,d.value,'ρ=Corr(Rx,Ry)','Se convierten X e Y en rangos y se calcula Pearson sobre los rangos.'])}
+      else if(d.method==='η²'){const q=d.detail;cf.push([d.a,d.b,d.method,'',q.m,'','','','','',q.total,d.value,'η²=SSentre/SStotal',`η²=(${fmt(q.between,6)})/(${fmt(q.total,6)}) = ${fmt(d.value,6)}`])}
+      else {cf.push([d.a,d.b,d.method,d.detail.n,'','','','','','','',d.value,'V=√[χ²/(n·min(r−1,c−1))]','Se calcula χ² a partir de la tabla de contingencia y luego se normaliza por n y las dimensiones de la tabla.'])}
+    });
+    addSheet('Correlacion_Detalle',cf);
+
+    // 7. DISTRIBUCIONES
+    const sm=[['Módulo','Variable','Parámetro','Valor','Fórmula','Sustitución / interpretación']];
+    if(RESULTS.media){sm.push(['Distribución x̄',RESULTS.media.h,'μ',RESULTS.media.mu,'E(x̄)=μ',`E(x̄)=${fmt(RESULTS.media.mu,6)}`]);sm.push(['Distribución x̄',RESULTS.media.h,'σx̄',RESULTS.media.se,'σx̄=σ/√n',`σx̄=${fmt(RESULTS.media.sd,6)}/√(${RESULTS.media.n})=${fmt(RESULTS.media.se,6)}`])}
+    if(RESULTS.prop){sm.push(['Distribución p̂',RESULTS.prop.h,'p',RESULTS.prop.p,'p=x/N',`p=${RESULTS.prop.successes}/${RESULTS.prop.N}=${fmt(RESULTS.prop.p,6)}`]);sm.push(['Distribución p̂',RESULTS.prop.h,'σp̂',RESULTS.prop.se,'√[p(1−p)/n]',`√[${fmt(RESULTS.prop.p,6)}(1−${fmt(RESULTS.prop.p,6)})/${RESULTS.prop.n}]=${fmt(RESULTS.prop.se,6)}`])}
+    if(RESULTS.tlc)RESULTS.tlc.table.forEach(r=>sm.push(['TLC',RESULTS.tlc.h,'σx̄ (n='+r[0]+')',r[1],'σx̄=σ/√n',`σx̄=${fmt(RESULTS.tlc.sd,6)}/√(${r[0]})=${fmt(r[1],6)}`]));
+    addSheet('Distribuciones',sm);
+
+    // 8. CÁLCULOS DETALLADOS
+    const cal=[['Variable','Estadístico','Fórmula','Valores usados','Sustitución','Resultado','Interpretación']];
+    collectFormulaRows().forEach(x=>{const a=x.a,m=x.stats.mean,v=x.stats.variance,s=x.stats.sd,mn=x.stats.min,mx=x.stats.max,sum=a.reduce((u,z)=>u+z,0);cal.push([x.h,'Media','x̄=Σxᵢ/n',`Σx=${fmt(sum,6)}; n=${a.length}`,`${fmt(sum,6)}/${a.length}`,m,'Promedio de los valores.']);cal.push([x.h,'Varianza','s²=Σ(xᵢ−x̄)²/(n−1)',`Σ(xᵢ−x̄)²=${fmt(v*(a.length-1),6)}; x̄=${fmt(m,6)}; n−1=${a.length-1}`,`${fmt(v*(a.length-1),6)}/${a.length-1}`,v,'Mide la dispersión cuadrática.']);cal.push([x.h,'Desviación estándar','s=√s²',`s²=${fmt(v,6)}`,`√(${fmt(v,6)})`,s,'Mide la dispersión en las mismas unidades.']);cal.push([x.h,'Rango','R=máx−mín',`máx=${fmt(mx,6)}; mín=${fmt(mn,6)}`,`${fmt(mx,6)}−${fmt(mn,6)}`,mx-mn,'Distancia entre el valor máximo y mínimo.'])});
+    addSheet('Calculos',cal);
+
+    // 9. CALCULADORA DEL EXCEL
+    if(RESULTS.excelCalc){const q=RESULTS.excelCalc;const ec=[['Parámetro','Valor','Fórmula','Sustitución / explicación'],['N población',q.N,'N',q.N],['Éxitos X',q.X,'X',q.X],['p','p=X/N',`p=${q.X}/${q.N}`,q.p],['q','q=1-p',`q=1-${fmt(q.p,6)}`,q.q],['Z','NORM.S.INV(1-alpha/2)',`Z=NORM.S.INV(1-${fmt((1-q.conf/100),6)}/2)`,q.z],['n finito','(N Z² p q)/(e²(N-1)+Z²pq)',`(${q.N}·${fmt(q.z,6)}²·${fmt(q.p,6)}·${fmt(q.q,6)})/[${fmt(q.e,6)}²·(${q.N}-1)+${fmt(q.z,6)}²·${fmt(q.p,6)}·${fmt(q.q,6)}]`,q.nFinite],['n redondeado','ROUNDUP(n,0)',`ROUNDUP(${fmt(q.nFinite,6)},0)`,q.nRound],['σp̂','√[p(1-p)/n]',`√[${fmt(q.p,6)}·${fmt(q.q,6)}/${q.n}]`,q.se],['Media p̂','AVERAGE(p̂)',`media de ${q.M} proporciones simuladas`,q.pMean],['IC inferior','p-Zσp̂',`${fmt(q.p,6)}-${fmt(q.z,6)}·${fmt(q.se,6)}`,q.ciL],['IC superior','p+Zσp̂',`${fmt(q.p,6)}+${fmt(q.z,6)}·${fmt(q.se,6)}`,q.ciU]];addSheet('Calculadora_Excel',ec);const pf=[['Intervalo p̂','Marca','fᵢ','Fᵢ','hᵢ','Hᵢ'],...q.fr.map(r=>[r.lo,r.mid,r.fi,r.Fi,r.hi,r.Hi])];addSheet('Muestreo_p',pf)}
+
+    // 9b. ANOVA
+    if(RESULTS.anova){const q=RESULTS.anova;
+      const av=[['Factor',q.c],['Variable numérica',q.h],['Grupos (k)',q.k],['N total',q.N],['Media global',q.grandMean],['α',q.alpha],['']];
+      av.push(['Fuente','SS','df','MS','F','p-value']);
+      av.push(['Entre grupos',q.SSB,q.dfB,q.MSB,q.F,q.p]);
+      av.push(['Dentro de grupos',q.SSW,q.dfW,q.MSW,'','']);
+      av.push(['Total',q.SST,q.N-1,'','','']);
+      av.push(['']);
+      av.push(['Decisión',q.reject?'Se rechaza H0: hay diferencia significativa entre medias':'No se rechaza H0: no hay diferencia significativa entre medias']);
+      addSheet('ANOVA',av);
+      const ag=[['Grupo','n','Media','Varianza','Desv. estándar'],...q.rows.map(r=>[r.g,r.n,r.mean,r.variance,r.sd])];
+      addSheet('ANOVA_Grupos',ag);
+    }
+
+    // 10. HISTORIAL
+    const hi=[['Fecha','Proceso','Detalle'],...(HISTORY||[]).map(h=>[h.date,h.title,h.detail])];
+    addSheet('Historial',hi);
+
+    // Ajuste de ancho y filtros
+    wb.SheetNames.forEach(name=>{const ws=wb.Sheets[name];const range=XLSX.utils.decode_range(ws['!ref']);const widths=[];for(let c=range.s.c;c<=range.e.c;c++){let max=12;for(let r=range.s.r;r<=Math.min(range.e.r,300);r++){const cell=ws[XLSX.utils.encode_cell({r,c})];if(cell&&cell.v!=null)max=Math.min(55,Math.max(max,String(cell.v).length+2));}widths.push({wch:max});}ws['!cols']=widths;});
+    if(wb.Sheets.Datos)wb.Sheets.Datos['!autofilter']={ref:wb.Sheets.Datos['!ref']};
+
+    XLSX.writeFile(wb,'analisis_estadistico_completo.xlsx',{bookType:'xlsx',compression:true});
+    addHistory('Exportación Excel','Se exportó correctamente el libro completo con Datos, Descriptivos, Frecuencias, Variantes, Correlaciones, Correlacion_Detalle, Distribuciones, Calculos e Historial.');
+    alert('Excel exportado correctamente: analisis_estadistico_completo.xlsx');
+  }catch(err){console.error(err);alert('No se pudo exportar el Excel. Error: '+(err?.message||err));}
+}
+function colLetter(n){let s='';while(n){let r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s}
+function downloadBlob(data,name,type){let blob=new Blob([data],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+async function exportPDF(){
+ if(!ROWS.length){alert('No hay datos procesados.');return}
+ const {jsPDF}=window.jspdf;let doc=new jsPDF({unit:'mm',format:'a4'});doc.setFontSize(16);doc.text('Análisis Estadístico Completo',15,16);doc.setFontSize(9);doc.text(`Fuente: ${FILE_NAME} · ${ROWS.length} filas · ${HEADERS.length} columnas`,15,22);let y=29;
+ doc.setFontSize(11);doc.text('1. Variables detectadas',15,y);y+=5;doc.setFontSize(8);doc.text(`Numéricas: ${NUM.join(', ')||'ninguna'}`,15,y);y+=4;doc.text(`Categóricas/variantes: ${CAT.join(', ')||'ninguna'}`,15,y);y+=7;
+ for(let x of collectFormulaRows().slice(0,8)){if(y>270){doc.addPage();y=16}doc.setFontSize(10);doc.text(x.h,15,y);y+=4;doc.autoTable({startY:y,head:[['n','Media','Mediana','Moda','s','s²','Mín','Máx']],body:[[x.a.length,fmt(x.stats.mean),fmt(x.stats.median),String(x.stats.mode),fmt(x.stats.sd),fmt(x.stats.variance),fmt(x.stats.min),fmt(x.stats.max)]] ,theme:'grid',styles:{fontSize:7}});y=doc.lastAutoTable.finalY+7}
+ if(RESULTS.group){if(y>245){doc.addPage();y=16}doc.setFontSize(11);doc.text(`2. Variantes: ${RESULTS.group.c} vs ${RESULTS.group.h}`,15,y);y+=4;doc.autoTable({startY:y,head:[['Variante','n','Media','Mediana','s','Mín','Máx']],body:RESULTS.group.rows.slice(0,35).map(([g,a])=>[g,a.length,fmt(mean(a)),fmt(median(a)),fmt(sd(a)),fmt(Math.min(...a)),fmt(Math.max(...a))]),theme:'grid',styles:{fontSize:7}});y=doc.lastAutoTable.finalY+7}
+ doc.addPage();doc.setFontSize(11);doc.text('Fórmulas y métodos',15,16);doc.setFontSize(9);let lines=['Cada resultado se presenta como: fórmula → valores reales que sustituyen los símbolos → resultado → interpretación.','Media: x̄ = Σxᵢ/n','Varianza muestral: s² = Σ(xᵢ−x̄)²/(n−1)','Desviación: s = √s²','Sturges: k = ⌈1 + 3.322 log₁₀(n)⌉','Distribución de x̄: E(x̄)=μ; σx̄=σ/√n','Proporción: p̂=x/n; E(p̂)=p; σp̂=√[p(1−p)/n]','TLC: al aumentar n, σx̄ disminuye y x̄ se concentra alrededor de μ','Numérica–numérica: Pearson y Spearman','Categórica–numérica: η²','Categórica–categórica: V de Cramér'];doc.text(lines,15,23,{maxWidth:180,lineHeightFactor:1.55});
+ if(RESULTS.corr){doc.addPage();doc.setFontSize(11);doc.text('Correlaciones y asociaciones',15,16);doc.autoTable({startY:22,head:[['A','B','Método','Coeficiente']],body:RESULTS.corr.slice(0,55).map(r=>[r[0],r[1],r[2],fmt(r[3],4)]),theme:'grid',styles:{fontSize:7}})}
+ if(RESULTS.anova){const q=RESULTS.anova;doc.addPage();doc.setFontSize(11);doc.text(`ANOVA: ${q.h} según ${q.c}`,15,16);doc.setFontSize(9);doc.text(`k=${q.k} grupos; N=${q.N}; media global=${fmt(q.grandMean,4)}; α=${fmt(q.alpha,4)}`,15,22);
+  doc.autoTable({startY:26,head:[['Fuente','SS','df','MS','F','p-value']],body:[['Entre grupos',fmt(q.SSB,4),q.dfB,fmt(q.MSB,4),fmt(q.F,4),fmt(q.p,6)],['Dentro de grupos',fmt(q.SSW,4),q.dfW,fmt(q.MSW,4),'',''],['Total',fmt(q.SST,4),q.N-1,'','','']],theme:'grid',styles:{fontSize:8}});
+  let yA=doc.lastAutoTable.finalY+6;doc.setFontSize(9);doc.text(q.reject?`Decisión: se rechaza H0 (p=${fmt(q.p,6)} < α=${fmt(q.alpha,4)}). Hay diferencia significativa entre las medias de los grupos.`:`Decisión: no se rechaza H0 (p=${fmt(q.p,6)} ≥ α=${fmt(q.alpha,4)}). No hay diferencia significativa entre las medias de los grupos.`,15,yA,{maxWidth:180});yA+=10;
+  doc.autoTable({startY:yA,head:[['Grupo','n','Media','Varianza','Desv. estándar']],body:q.rows.map(r=>[r.g,r.n,fmt(r.mean,4),fmt(r.variance,4),fmt(r.sd,4)]),theme:'grid',styles:{fontSize:7}});
+  const cAn=document.getElementById('anovaChart');if(cAn&&cAn.toDataURL){try{doc.addPage();doc.setFontSize(11);doc.text('Medias por grupo (ANOVA)',15,16);doc.addImage(cAn.toDataURL('image/png'),'PNG',15,23,180,105);}catch(e){}}
+ }
+ // Gráficos generados en pantalla: se incorporan al PDF cuando el navegador permite leer su canvas.
+ for(const [id,title] of [['descFreqChart','Frecuencia de variable numérica'],['cm','Distribución muestral de x̄'],['propChart','Distribución muestral de p̂'],['tlcChart','Teorema del Límite Central']]){const c=document.getElementById(id);if(c&&c.toDataURL){try{doc.addPage();doc.setFontSize(11);doc.text(title,15,16);doc.addImage(c.toDataURL('image/png'),'PNG',15,23,180,105);}catch(e){}}}
+ doc.save('analisis_estadistico_completo.pdf');addHistory('Exportación PDF','Se creó el PDF con resumen de datos, descriptivos, fórmulas, análisis por variantes y correlaciones/asociaciones.');
+}
+$('xlsx').addEventListener('click',exportExcel);$('pdf').addEventListener('click',exportPDF);$('both').addEventListener('click',async()=>{await exportPDF();await exportExcel();addHistory('Exportación completa','Se generaron PDF y Excel del análisis completo, incluyendo fórmulas, sustituciones, tablas, gráficos disponibles, variantes, asociaciones y resultados.');});
+$('openHist').addEventListener('click',()=>{let w=window.open('','_blank');if(!w)return;w.document.write(`<pre style="white-space:pre-wrap;font:14px Arial;padding:25px">${esc(HISTORY.map((h,i)=>`${i+1}. ${h.title}\n${h.date}\n${h.detail}`).join('\n\n'))}</pre>`);w.document.close()});
+$('clearHist').addEventListener('click',()=>{if(confirm('¿Borrar historial?')){HISTORY=[];localStorage.removeItem('estat_hist_final');renderHistory()}});
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('p-'+b.dataset.tab).classList.add('active')}));
+HISTORY=JSON.parse(localStorage.getItem('estat_hist_final')||'[]');renderHistory();fillSelectors();fillExcelCalcSelectors();fillEcVariableSelector();
+</script>
+</body>
+</html>
